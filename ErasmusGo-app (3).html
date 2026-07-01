@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ErasmusGo</title>
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background:#E9E6F8; }
+  button { font-family: inherit; border:none; background:none; cursor:pointer; padding:0; }
+  img { display:block; }
+  ::-webkit-scrollbar { width:0; height:0; }
+  .row { display:flex; align-items:center; }
+  .col { display:flex; flex-direction:column; }
+  .between { justify-content:space-between; }
+  .wrap { flex-wrap:wrap; }
+  .grow { flex:1; min-width:0; }
+  .truncate { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .card { border:1px solid #f1f1f4; border-radius:12px; }
+  #noscript-msg { display:none; padding:40px; text-align:center; color:#5B4BD6; font-size:14px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="noscript-msg">Deze app laadt React vanaf het internet. Controleer je internetverbinding en vernieuw de pagina.</div>
+<script>
+  window.addEventListener("error", function (e) {
+    var n = document.getElementById("noscript-msg");
+    if (n && !document.getElementById("root").hasChildNodes()) n.style.display = "block";
+  });
+</script>
+<script>
+const { useState, createElement: e, Fragment } = React;
+
+/* ---------- kleuren ---------- */
+const PURPLE = "#6C5CE7", PURPLE_DARK = "#5B4BD6", PURPLE_SOFT = "#EFEDFB";
+const PAGE_BG = "#F3F1FB";
+const CORAL = "#E0735A", CORAL_SOFT = "#FBE7E1";
+const GREEN = "#3FAE82", GREEN_SOFT = "#E2F5EC";
+const AMBER = "#D99A2B", AMBER_SOFT = "#FBF0DC";
+const BLUE = "#3B82C4", BLUE_SOFT = "#E3EEF8";
+
+/* ---------- foto's (Wikimedia Commons, vrij van rechten) ---------- */
+const IMG = {
+  graslei: "https://commons.wikimedia.org/wiki/Special:FilePath/Graslei_Ghent.jpg?width=500",
+  gravensteen: "https://commons.wikimedia.org/wiki/Special:FilePath/Gent_Burg_Gravensteen_09.jpg?width=500",
+  belfort: "https://commons.wikimedia.org/wiki/Special:FilePath/Gent_Belfort.JPG?width=500",
+  valencia: "https://commons.wikimedia.org/wiki/Special:FilePath/Ciudad_de_las_Artes_y_las_Ciencias.JPG?width=500",
+  paris: "https://commons.wikimedia.org/wiki/Special:FilePath/Eiffel_Tower_20051010.jpg?width=500",
+};
+
+/* ---------- iconen (los van externe libraries) ---------- */
+function Icon({ name, size = 20, color = "currentColor" }) {
+  const p = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" };
+  const paths = {
+    home: [e("path", { key: 1, d: "M3 11.5 12 4l9 7.5" }), e("path", { key: 2, d: "M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9" })],
+    calendar: [e("rect", { key: 1, x: 3, y: 5, width: 18, height: 16, rx: 2 }), e("path", { key: 2, d: "M3 9h18M8 3v4M16 3v4" })],
+    chat: [e("path", { key: 1, d: "M21 12a8 8 0 1 1-3.2-6.4L21 4l-1 4.2A8 8 0 0 1 21 12Z" })],
+    pin: [e("path", { key: 1, d: "M12 21s7-7.2 7-12a7 7 0 1 0-14 0c0 4.8 7 12 7 12Z" }), e("circle", { key: 2, cx: 12, cy: 9, r: 2.3 })],
+    user: [e("circle", { key: 1, cx: 12, cy: 8, r: 3.5 }), e("path", { key: 2, d: "M5 20c1.2-3.5 4-5 7-5s5.8 1.5 7 5" })],
+    search: [e("circle", { key: 1, cx: 11, cy: 11, r: 6.5 }), e("path", { key: 2, d: "M20 20l-4.3-4.3" })],
+    chevron: [e("path", { key: 1, d: "M9 6l6 6-6 6" })],
+    sparkles: [e("path", { key: 1, d: "M12 3v5M12 16v5M3 12h5M16 12h5M6 6l3 3M15 15l3 3M18 6l-3 3M9 15l-3 3" })],
+    filecheck: [e("path", { key: 1, d: "M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8l-4-5Z" }), e("path", { key: 2, d: "M9.5 13l1.7 1.7L14.5 11" })],
+    wallet: [e("rect", { key: 1, x: 3, y: 7, width: 18, height: 13, rx: 2 }), e("path", { key: 2, d: "M3 10h18M16 14h2" })],
+    users: [e("circle", { key: 1, cx: 9, cy: 8, r: 3 }), e("path", { key: 2, d: "M3 19c.8-3 3-4.5 6-4.5s5.2 1.5 6 4.5" }), e("circle", { key: 3, cx: 17, cy: 9, r: 2.3 }), e("path", { key: 4, d: "M16 14.2c2.3.3 3.7 1.6 4.3 3.8" })],
+    compass: [e("circle", { key: 1, cx: 12, cy: 12, r: 9 }), e("path", { key: 2, d: "M15 9l-2 6-6 2 2-6 6-2Z" })],
+    plus: [e("path", { key: 1, d: "M12 5v14M5 12h14" })],
+    building: [e("rect", { key: 1, x: 5, y: 3, width: 14, height: 18, rx: 1 }), e("path", { key: 2, d: "M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01" })],
+    coffee: [e("path", { key: 1, d: "M4 9h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" }), e("path", { key: 2, d: "M17 10h1.5a2 2 0 1 1 0 4H17" }), e("path", { key: 3, d: "M7 3c0 1-1 1-1 2M11 3c0 1-1 1-1 2" })],
+    food: [e("path", { key: 1, d: "M6 3v8a2 2 0 0 0 4 0V3M8 11v10M16 3c-1.5 0-2.5 1.5-2.5 4s1 4 2.5 4v9" })],
+    book: [e("path", { key: 1, d: "M4 5a2 2 0 0 1 2-2h6v17H6a2 2 0 0 1-2-2V5Z" }), e("path", { key: 2, d: "M12 3h6a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-6" })],
+    party: [e("path", { key: 1, d: "M4 20l3-10 13-6-6 13-10 3Z" }), e("path", { key: 2, d: "M13 11l3 3" })],
+    heart: [e("path", { key: 1, d: "M12 20s-7-4.4-9.3-8.8C1.4 8 3 5 6.2 5 8.4 5 10 6.3 12 8.5 14 6.3 15.6 5 17.8 5 21 5 22.6 8 21.3 11.2 19 15.6 12 20 12 20Z" })],
+    star: [e("path", { key: 1, d: "M12 2.5l2.9 6 6.6.8-4.8 4.6 1.2 6.6L12 17.3 6.1 20.5l1.2-6.6-4.8-4.6 6.6-.8L12 2.5Z" })],
+    back: [e("path", { key: 1, d: "M19 12H5M11 6l-6 6 6 6" })],
+    scale: [e("path", { key: 1, d: "M12 3v18M5 8l3-4 3 4M16 8l3-4 3 4M3 8h6M16 8h6M5 8c0 3-2 5-2 5h4s-2-2-2-5ZM19 8c0 3-2 5-2 5h4s-2-2-2-5Z" })],
+  };
+  if (name === "star") return e("svg", { ...p, fill: color, stroke: "none" }, paths.star);
+  return e("svg", p, paths[name] || null);
+}
+
+/* ---------- illustratie-avatar (geen echte foto, voor privacy) ---------- */
+function PersonAvatar({ size = 40, top = PURPLE, skin = "#F0C29B", hair = "#5B4233" }) {
+  return e("svg", { width: size, height: size, viewBox: "0 0 64 64", style: { borderRadius: "50%", flexShrink: 0 } }, [
+    e("circle", { key: 1, cx: 32, cy: 32, r: 32, fill: top, opacity: 0.15 }),
+    e("circle", { key: 2, cx: 32, cy: 27, r: 12, fill: skin }),
+    e("path", { key: 3, d: "M20 24c0-8 6-13 12-13s12 5 12 13c-3-2-6-3-12-3s-9 1-12 3Z", fill: hair }),
+    e("path", { key: 4, d: "M14 58c2-10 9-16 18-16s16 6 18 16Z", fill: top }),
+  ]);
+}
+
+function TopBar({ title, onBack }) {
+  return e("div", { className: "row", style: { gap: 8, padding: "16px 20px 12px", background: "white", position: "sticky", top: 0, zIndex: 10, borderBottom: "1px solid #f1f1f4" } }, [
+    onBack && e("button", { key: "b", onClick: onBack, style: { padding: 4, marginLeft: -4, borderRadius: 999 } }, e(Icon, { name: "back", size: 20, color: "#1f2937" })),
+    e("h1", { key: "t", className: "grow", style: { fontSize: 17, fontWeight: 600, color: "#111827", margin: 0 } }, title),
+  ]);
+}
+function SectionLabel({ children }) {
+  return e("p", { style: { fontSize: 12, fontWeight: 600, color: "#9ca3af", marginBottom: 12, letterSpacing: 0.3 } }, children);
+}
+function Pill({ children, active, color = PURPLE, soft = PURPLE_SOFT }) {
+  return e("span", { style: { fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap", background: active ? color : soft, color: active ? "white" : color, display: "inline-block" } }, children);
+}
+
+/* ================= HOME ================= */
+function HomeScreen({ name = "Lena", city = "Gent", go }) {
+  const shortcuts = [
+    { icon: "chat", label: "Chat", key: "chat", bg: PURPLE_SOFT, color: PURPLE_DARK },
+    { icon: "pin", label: "Spots", key: "spots", bg: CORAL_SOFT, color: CORAL },
+    { icon: "calendar", label: "Reizen", key: "travel", bg: GREEN_SOFT, color: GREEN },
+    { icon: "building", label: "Wonen", key: "wonen", bg: AMBER_SOFT, color: AMBER },
+  ];
+  const events = [
+    { name: "Sunrise City Run", info: "Zat 22 jun · Citadelpark", price: "€3", dot: PURPLE },
+    { name: "Taalcafé Volta", info: "Zon 23 jun · Vrij", price: "Gratis", dot: CORAL },
+  ];
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e("div", { key: "header", className: "row between", style: { padding: "20px 20px 16px" } }, [
+      e("div", { key: 1 }, [
+        e("p", { key: 1, style: { color: "#9ca3af", fontSize: 12, margin: 0 } }, "Goeiemorgen"),
+        e("h1", { key: 2, style: { color: "#111827", fontSize: 21, fontWeight: 700, lineHeight: 1.25, margin: 0 } }, [
+          `${name}, welkom in ${city}! `,
+          e("span", { key: "be", style: { color: "#9ca3af", fontSize: 15, fontWeight: 600 } }, "BE"),
+        ]),
+      ]),
+      e("button", { key: 2, onClick: () => go("profile") }, e(PersonAvatar, { size: 42, top: PURPLE })),
+    ]),
+
+    e("div", { key: "event", style: { padding: "0 20px" } },
+      e("button", { onClick: () => go("event"), style: { width: "100%", textAlign: "left", borderRadius: 16, padding: 16, background: PURPLE } }, [
+        e(Pill, { key: 1, color: "white", soft: "rgba(255,255,255,0.2)", active: true }, "VANAVOND"),
+        e("p", { key: 2, style: { color: "white", fontWeight: 700, fontSize: 16, margin: "8px 0 0" } }, "ESN Pubquiz Night"),
+        e("p", { key: 3, style: { color: "rgba(255,255,255,0.8)", fontSize: 13, margin: "2px 0 0" } }, "De Geus · 20:00 · 42 gaan"),
+        e("div", { key: 4, className: "row between", style: { marginTop: 12 } }, [
+          e("span", { key: 1, style: { fontSize: 12, fontWeight: 600, color: "white", background: "rgba(255,255,255,0.2)", borderRadius: 999, padding: "4px 12px" } }, "Gratis"),
+          e("span", { key: 2, className: "row", style: { gap: 4, fontSize: 13, fontWeight: 600, color: "white", background: "rgba(255,255,255,0.15)", borderRadius: 999, padding: "6px 12px" } }, ["Bekijk", e(Icon, { key: "i", name: "chevron", size: 14, color: "white" })]),
+        ]),
+      ])
+    ),
+
+    e("div", { key: "shortcuts", style: { padding: "24px 20px 0" } }, [
+      e(SectionLabel, { key: 1 }, "GA SNEL NAAR"),
+      e("div", { key: 2, style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 } },
+        shortcuts.map((it) =>
+          e("button", { key: it.key, onClick: () => go(it.key), className: "col", style: { alignItems: "center", gap: 6 } }, [
+            e("div", { key: 1, style: { width: 56, height: 56, borderRadius: 16, background: it.bg, display: "flex", alignItems: "center", justifyContent: "center" } }, e(Icon, { name: it.icon, size: 22, color: it.color })),
+            e("span", { key: 2, style: { fontSize: 12, color: "#374151", fontWeight: 500 } }, it.label),
+          ])
+        )
+      ),
+    ]),
+
+    e("div", { key: "banners", className: "col", style: { padding: "24px 20px 0", gap: 8 } }, [
+      e("button", { key: 1, onClick: () => go("discover"), className: "row", style: { width: "100%", gap: 12, borderRadius: 12, padding: 12, background: CORAL_SOFT, textAlign: "left" } }, [
+        e(Icon, { key: 1, name: "compass", size: 20, color: CORAL }),
+        e("div", { key: 2, className: "grow" }, [
+          e("p", { key: 1, style: { fontSize: 13, fontWeight: 600, color: CORAL, margin: 0 } }, "Nog niet op Erasmus?"),
+          e("p", { key: 2, style: { fontSize: 11, color: CORAL, margin: 0 } }, "Ontdek Gent vooraf, met foto's en tips"),
+        ]),
+        e(Icon, { key: 3, name: "chevron", size: 16, color: CORAL }),
+      ]),
+      e("button", { key: 2, onClick: () => go("cities"), className: "row", style: { width: "100%", gap: 12, borderRadius: 12, padding: 12, background: BLUE_SOFT, textAlign: "left" } }, [
+        e(Icon, { key: 1, name: "scale", size: 20, color: BLUE }),
+        e("div", { key: 2, className: "grow" }, [
+          e("p", { key: 1, style: { fontSize: 13, fontWeight: 600, color: BLUE, margin: 0 } }, "Nog geen stad gekozen?"),
+          e("p", { key: 2, style: { fontSize: 11, color: BLUE, margin: 0 } }, "Vergelijk Erasmus-ervaringen van studenten"),
+        ]),
+        e(Icon, { key: 3, name: "chevron", size: 16, color: BLUE }),
+      ]),
+    ]),
+
+    e("div", { key: "events", style: { padding: "24px 20px 0" } }, [
+      e(SectionLabel, { key: 1 }, "KOMENDE EVENTS"),
+      ...events.map((ev, i) =>
+        e("div", { key: i, className: "row", style: { gap: 12, background: "white", border: "1px solid #f1f1f4", borderRadius: 12, padding: 12, marginBottom: 8 } }, [
+          e("div", { key: 1, style: { width: 8, height: 8, borderRadius: 999, background: ev.dot, flexShrink: 0 } }),
+          e("div", { key: 2, className: "grow" }, [
+            e("p", { key: 1, style: { fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 } }, ev.name),
+            e("p", { key: 2, style: { fontSize: 12, color: "#6b7280", margin: 0 } }, ev.info),
+          ]),
+          ev.price === "Gratis" ? e(Pill, { key: 3, color: CORAL, soft: CORAL_SOFT, active: true }, ev.price) : e(Pill, { key: 3, color: PURPLE, soft: PURPLE_SOFT }, ev.price),
+        ])
+      ),
+    ]),
+
+    e("div", { key: "buddy", style: { padding: "24px 20px 0" } }, [
+      e(SectionLabel, { key: 1 }, "JOUW BUDDY"),
+      e("div", { key: 2, className: "row", style: { gap: 12, background: "white", border: "1px solid #f1f1f4", borderRadius: 12, padding: 12 } }, [
+        e(PersonAvatar, { key: 1, size: 40, top: GREEN, skin: "#E2A878", hair: "#1C1C1C" }),
+        e("div", { key: 2, className: "grow" }, [
+          e("p", { key: 1, style: { fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 } }, "Matteo Verdi"),
+          e("p", { key: 2, style: { fontSize: 12, color: "#6b7280", margin: 0 } }, "IT · 2e jaar Erasmus · Gent"),
+        ]),
+        e("button", { key: 3, onClick: () => go("chat"), style: { width: 36, height: 36, borderRadius: 999, background: PURPLE_SOFT, display: "flex", alignItems: "center", justifyContent: "center" } }, e(Icon, { name: "chat", size: 16, color: PURPLE_DARK })),
+      ]),
+    ]),
+
+    e("div", { key: "location", style: { padding: "16px 20px 0" } },
+      e("div", { className: "row", style: { gap: 8, background: "white", border: "1px solid #f1f1f4", borderRadius: 12, padding: 12 } }, [
+        e(Icon, { key: 1, name: "pin", size: 16, color: PURPLE_DARK }),
+        e("span", { key: 2, style: { fontSize: 13, color: "#374151", fontWeight: 500 } }, "Gent, België"),
+        e("span", { key: 3, style: { marginLeft: "auto", fontSize: 12, fontWeight: 500, color: "#9ca3af" } }, "Travel mode uitgeschakeld"),
+      ])
+    ),
+  ]);
+}
+
+/* ================= CHAT ================= */
+function ChatScreen() {
+  const groups = [
+    { name: "Erasmus Gent", last: "Wie gaat er naar de pubquiz?", unread: 4, top: PURPLE, type: "Stad" },
+    { name: "Buddy · Matteo", last: "Top, zie je daar!", unread: 0, top: GREEN, type: "Buddy" },
+    { name: "Weekend Praag", last: "Budget split staat klaar", unread: 2, top: CORAL, type: "Reisgroep" },
+    { name: "Erasmus Wonen Gent", last: "Kamer vrij vanaf juli", unread: 0, top: AMBER, type: "Wonen" },
+  ];
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Chats" }),
+    e("div", { key: "body", style: { padding: "12px 20px 0" } }, [
+      e("div", { key: 1, className: "row", style: { gap: 8, borderRadius: 12, padding: "10px 12px", marginBottom: 16, background: PAGE_BG } }, [
+        e(Icon, { key: 1, name: "search", size: 16, color: "#9ca3af" }),
+        e("span", { key: 2, style: { fontSize: 13, color: "#9ca3af" } }, "Zoek een chat of stad…"),
+      ]),
+      e(SectionLabel, { key: 2 }, "JOUW GROEPEN"),
+      e("div", { key: 3, className: "col", style: { gap: 8 } },
+        groups.map((g, i) =>
+          e("div", { key: i, className: "row", style: { gap: 12, border: "1px solid #f1f1f4", borderRadius: 12, padding: 12 } }, [
+            e(PersonAvatar, { key: 1, size: 40, top: g.top }),
+            e("div", { key: 2, className: "grow" }, [
+              e("div", { key: 1, className: "row", style: { gap: 8 } }, [
+                e("p", { key: 1, className: "truncate", style: { fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 } }, g.name),
+                e(Pill, { key: 2, color: g.top, soft: PAGE_BG }, g.type),
+              ]),
+              e("p", { key: 2, className: "truncate", style: { fontSize: 12, color: "#6b7280", margin: "2px 0 0" } }, g.last),
+            ]),
+            g.unread > 0 && e("span", { key: 3, style: { fontSize: 11, fontWeight: 700, color: "white", borderRadius: 999, width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: PURPLE } }, g.unread),
+          ])
+        )
+      ),
+      e("div", { key: 4, style: { marginTop: 20, borderRadius: 12, padding: 16, background: GREEN_SOFT } }, [
+        e("p", { key: 1, style: { fontSize: 13, fontWeight: 600, color: GREEN, margin: 0 } }, "Op reis?"),
+        e("p", { key: 2, style: { fontSize: 12, color: GREEN, margin: "4px 0 0" } }, "Zet travel mode aan en je krijgt automatisch toegang tot de Erasmus-chat van je nieuwe stad."),
+      ]),
+    ]),
+  ]);
+}
+
+/* ================= SPOTS ================= */
+function SpotsScreen() {
+  const categories = [
+    { label: "Alle", icon: "compass" }, { label: "Eten", icon: "food" }, { label: "Bars", icon: "coffee" },
+    { label: "Studeren", icon: "book" }, { label: "Uitgaan", icon: "party" },
+  ];
+  const allSpots = [
+    { name: "Café Labath", tag: "Betaalbaar · Bar", cat: "Bars", rating: "4.6", by: "112 tips", icon: "coffee", price: "€€" },
+    { name: "Pizza Forno", tag: "Betaalbaar · Eten", cat: "Eten", rating: "4.4", by: "87 tips", icon: "food", price: "€" },
+    { name: "Het Pand Hostel Bar", tag: "Studentvriendelijk", cat: "Bars", rating: "4.7", by: "64 tips", icon: "party", price: "€€" },
+    { name: "Krook Bibliotheek", tag: "Rustig studeren, gratis wifi", cat: "Studeren", rating: "4.8", by: "203 tips", icon: "book", price: "Gratis" },
+    { name: "Overpoortstraat", tag: "Studentenuitgaansbuurt", cat: "Uitgaan", rating: "4.5", by: "150 tips", icon: "party", price: "€" },
+    { name: "Vrijdagmarkt terrassen", tag: "Gezellig, veel volk", cat: "Eten", rating: "4.3", by: "98 tips", icon: "food", price: "€€" },
+  ];
+  const [active, setActive] = useState(0);
+  const filtered = active === 0 ? allSpots : allSpots.filter((s) => s.cat === categories[active].label);
+
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Spots in Gent" }),
+    e("div", { key: "body", style: { padding: "12px 20px 0" } }, [
+      e("div", { key: 1, style: { height: 144, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: CORAL_SOFT } }, [
+        e(Icon, { key: 1, name: "compass", size: 26, color: CORAL }),
+        e("span", { key: 2, style: { marginLeft: 8, fontSize: 13, fontWeight: 500, color: CORAL } }, "Kaart van Gent"),
+      ]),
+      e("div", { key: 2, className: "row", style: { gap: 8, marginTop: 16, overflowX: "auto", paddingBottom: 4 } },
+        categories.map((c, i) =>
+          e("button", { key: c.label, onClick: () => setActive(i), className: "row", style: { gap: 4, flexShrink: 0, padding: "6px 12px", borderRadius: 999, background: active === i ? CORAL : CORAL_SOFT } }, [
+            e(Icon, { key: 1, name: c.icon, size: 14, color: active === i ? "white" : CORAL }),
+            e("span", { key: 2, style: { fontSize: 12, fontWeight: 600, color: active === i ? "white" : CORAL } }, c.label),
+          ])
+        )
+      ),
+      e("p", { key: 3, style: { fontSize: 12, fontWeight: 600, color: "#9ca3af", margin: "20px 0 12px", letterSpacing: 0.3 } }, `${filtered.length} PLEKKEN AANGERADEN DOOR STUDENTEN`),
+      e("div", { key: 4, className: "col", style: { gap: 8 } },
+        filtered.map((s, i) =>
+          e("div", { key: i, className: "row", style: { gap: 12, border: "1px solid #f1f1f4", borderRadius: 12, padding: 12 } }, [
+            e("div", { key: 1, style: { width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: CORAL_SOFT } }, e(Icon, { name: s.icon, size: 20, color: CORAL })),
+            e("div", { key: 2, className: "grow" }, [
+              e("p", { key: 1, style: { fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 } }, s.name),
+              e("p", { key: 2, style: { fontSize: 12, color: "#6b7280", margin: 0 } }, s.tag),
+            ]),
+            e("div", { key: 3, style: { textAlign: "right", flexShrink: 0 } }, [
+              e("p", { key: 1, className: "row", style: { gap: 2, justifyContent: "flex-end", fontSize: 13, fontWeight: 600, color: CORAL, margin: 0 } }, [e(Icon, { key: "i", name: "star", size: 12, color: CORAL }), s.rating]),
+              e("p", { key: 2, style: { fontSize: 10, color: "#9ca3af", margin: 0 } }, `${s.price} · ${s.by}`),
+            ]),
+          ])
+        )
+      ),
+    ]),
+  ]);
+}
+
+/* ================= REIZEN ================= */
+function TravelScreen() {
+  const trips = [
+    { name: "Weekend Praag", date: "27–29 jun", people: 6, status: "Budget-split actief" },
+    { name: "Daguitstap Brugge", date: "5 jul", people: 3, status: "Plekken vrij" },
+  ];
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Reisgroepen" }),
+    e("div", { key: "body", style: { padding: "12px 20px 0" } }, [
+      e("button", { key: 1, className: "row", style: { justifyContent: "center", gap: 8, width: "100%", borderRadius: 12, padding: "12px 0", color: "white", fontWeight: 600, fontSize: 14, background: GREEN } }, [e(Icon, { key: "i", name: "plus", size: 16, color: "white" }), "Nieuwe reis voorstellen"]),
+      e(SectionLabel, { key: 2, }, e("span", { style: { display: "block", marginTop: 20 } }, "JOUW REIZEN")),
+      e("div", { key: 3, className: "col", style: { gap: 8 } },
+        trips.map((t, i) =>
+          e("div", { key: i, style: { borderRadius: 12, padding: 16, border: "1px solid #f1f1f4" } }, [
+            e("div", { key: 1, className: "row between" }, [
+              e("p", { key: 1, style: { fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 } }, t.name),
+              e("span", { key: 2, style: { fontSize: 12, color: "#6b7280" } }, t.date),
+            ]),
+            e("div", { key: 2, className: "row", style: { gap: 6, marginTop: 8 } }, [e(Icon, { key: 1, name: "users", size: 14, color: GREEN }), e("span", { key: 2, style: { fontSize: 12, color: "#4b5563" } }, `${t.people} reizigers`)]),
+            e("div", { key: 3, style: { marginTop: 8 } }, e(Pill, { color: GREEN, soft: GREEN_SOFT, active: true }, t.status)),
+          ])
+        )
+      ),
+      e(SectionLabel, { key: 4 }, e("span", { style: { display: "block", marginTop: 20 } }, "ON THE ROAD?")),
+      e("div", { key: 5, style: { borderRadius: 12, padding: 16, background: GREEN_SOFT } },
+        e("p", { style: { fontSize: 13, fontWeight: 500, color: GREEN, margin: 0 } }, 'Zet "Travel mode" aan op je profiel zodra je aankomt in een nieuwe stad — je krijgt automatisch de lokale Erasmus-chat en evenementen te zien.')
+      ),
+    ]),
+  ]);
+}
+
+/* ================= WONEN ================= */
+function WonenScreen() {
+  const rooms = [
+    { title: "Kamer in studentenhuis", area: "Sint-Pietersnieuwstraat", price: "€420/mnd", from: "vanaf 1 jul" },
+    { title: "Studio dicht bij UGent", area: "Overpoortstraat", price: "€560/mnd", from: "vanaf 15 jul" },
+  ];
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Wonen in Gent" }),
+    e("div", { key: "body", style: { padding: "12px 20px 0" } }, [
+      e("button", { key: 1, style: { width: "100%", textAlign: "left", borderRadius: 16, padding: 16, background: AMBER } }, [
+        e("p", { key: 1, style: { color: "white", fontWeight: 700, fontSize: 15, margin: 0 } }, "Nog op zoek naar een plaats?"),
+        e("p", { key: 2, style: { color: "rgba(255,255,255,0.85)", fontSize: 12, margin: "4px 0 0" } }, "Bekijk kamers, contracten en tips van studenten die al een plek vonden."),
+      ]),
+      e(SectionLabel, { key: 2 }, e("span", { style: { display: "block", marginTop: 20 } }, "BESCHIKBARE KAMERS")),
+      e("div", { key: 3, className: "col", style: { gap: 8 } },
+        rooms.map((r, i) =>
+          e("div", { key: i, className: "row", style: { gap: 12, borderRadius: 12, padding: 12, border: "1px solid #f1f1f4" } }, [
+            e("div", { key: 1, style: { width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: AMBER_SOFT } }, e(Icon, { name: "building", size: 20, color: AMBER })),
+            e("div", { key: 2, className: "grow" }, [
+              e("p", { key: 1, style: { fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 } }, r.title),
+              e("p", { key: 2, style: { fontSize: 12, color: "#6b7280", margin: 0 } }, `${r.area} · ${r.from}`),
+            ]),
+            e(Pill, { key: 3, color: AMBER, soft: AMBER_SOFT, active: true }, r.price),
+          ])
+        )
+      ),
+      e(SectionLabel, { key: 4 }, e("span", { style: { display: "block", marginTop: 20 } }, "HULP NODIG")),
+      e("div", { key: 5, className: "col", style: { gap: 8 } }, [
+        e("div", { key: 1, className: "row", style: { gap: 12, borderRadius: 12, padding: 12, border: "1px solid #f1f1f4" } }, [e(Icon, { key: 1, name: "filecheck", size: 18, color: AMBER }), e("p", { key: 2, className: "grow", style: { fontSize: 13, fontWeight: 500, color: "#1f2937", margin: 0 } }, "Huurcontract laten checken"), e(Icon, { key: 3, name: "chevron", size: 16, color: "#9ca3af" })]),
+        e("div", { key: 2, className: "row", style: { gap: 12, borderRadius: 12, padding: 12, border: "1px solid #f1f1f4" } }, [e(Icon, { key: 1, name: "chat", size: 18, color: AMBER }), e("p", { key: 2, className: "grow", style: { fontSize: 13, fontWeight: 500, color: "#1f2937", margin: 0 } }, "Vraag het in de Wonen-chat"), e(Icon, { key: 3, name: "chevron", size: 16, color: "#9ca3af" })]),
+      ]),
+    ]),
+  ]);
+}
+
+/* ================= ONTDEK GENT ================= */
+function DiscoverScreen({ go }) {
+  const sights = [
+    { name: "Graslei & Korenlei", desc: "De beroemde kades met gildehuizen langs de Leie. Ideaal voor een avondwandeling of een drankje op de trappen.", img: IMG.graslei },
+    { name: "Gravensteen", desc: "Middeleeuws kasteel midden in de stad. Klim naar boven voor uitzicht over Gent.", img: IMG.gravensteen },
+    { name: "Belfort", desc: "De belforttoren met de gouden draak, uitzicht over de drie torens van Gent.", img: IMG.belfort },
+  ];
+  const todo = [
+    { label: "Studentenleven in Overpoort", icon: "party", color: PURPLE, soft: PURPLE_SOFT, desc: "Dé uitgaansstraat van Gent, vooral 's nachts vol leven." },
+    { label: "Vrijdagmarkt & terrasjes", icon: "coffee", color: CORAL, soft: CORAL_SOFT, desc: "Gezellig plein met cafés, perfect om mensen te leren kennen." },
+    { label: "Erasmus-buddy aanvragen", icon: "heart", color: GREEN, soft: GREEN_SOFT, desc: "Krijg nu al een buddy toegewezen vóór je vertrekt." },
+  ];
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Ontdek Gent", onBack: () => go("home") }),
+    e("div", { key: "body", style: { padding: "12px 20px 0" } }, [
+      e("div", { key: 1, style: { borderRadius: 16, padding: 16, background: PURPLE } }, [
+        e("p", { key: 1, style: { color: "white", fontWeight: 700, fontSize: 15, margin: 0 } }, "Nog niet vertrokken?"),
+        e("p", { key: 2, style: { color: "rgba(255,255,255,0.8)", fontSize: 12, margin: "4px 0 0" } }, "Een voorproefje van Gent — plekken, sfeer en eerste tips, nog voor je aankomt."),
+      ]),
+      e(SectionLabel, { key: 2 }, e("span", { style: { display: "block", marginTop: 20 } }, "MOOIE PLEKKEN")),
+      e("div", { key: 3, className: "col", style: { gap: 12 } },
+        sights.map((s, i) =>
+          e("div", { key: i, style: { borderRadius: 12, border: "1px solid #f1f1f4", overflow: "hidden" } }, [
+            e("img", { key: 1, src: s.img, alt: s.name, style: { width: "100%", height: 144, objectFit: "cover" } }),
+            e("div", { key: 2, style: { padding: 12 } }, [
+              e("p", { key: 1, style: { fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 } }, s.name),
+              e("p", { key: 2, style: { fontSize: 12, color: "#6b7280", margin: "4px 0 0", lineHeight: 1.5 } }, s.desc),
+            ]),
+          ])
+        )
+      ),
+      e(SectionLabel, { key: 4 }, e("span", { style: { display: "block", marginTop: 20 } }, "WAT TE DOEN ALS STUDENT")),
+      e("div", { key: 5, className: "col", style: { gap: 8 } },
+        todo.map((t, i) =>
+          e("div", { key: i, className: "row", style: { gap: 12, borderRadius: 12, padding: 12, border: "1px solid #f1f1f4" } }, [
+            e("div", { key: 1, style: { width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: t.soft } }, e(Icon, { name: t.icon, size: 20, color: t.color })),
+            e("div", { key: 2, className: "grow" }, [
+              e("p", { key: 1, style: { fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 } }, t.label),
+              e("p", { key: 2, style: { fontSize: 11, color: "#6b7280", margin: "2px 0 0" } }, t.desc),
+            ]),
+          ])
+        )
+      ),
+      e("button", { key: 6, onClick: () => go("home"), style: { width: "100%", marginTop: 20, borderRadius: 12, padding: "12px 0", color: "white", fontWeight: 600, fontSize: 14, background: GREEN } }, "Ik kom binnenkort op Erasmus →"),
+    ]),
+  ]);
+}
+
+/* ================= STEDEN ================= */
+const CITY_DATA = {
+  gent: {
+    name: "Gent, België", img: IMG.graslei, vibe: "Klein, gezellig, studentikoos",
+    stats: { kost: "€€", uitgaan: "Studentikoos", taal: "NL/EN" },
+    reviews: [
+      { name: "Sara, Erasmus 2025", text: "Compacte stad, alles op de fiets bereikbaar. Heel veel internationale studenten dus snel vrienden gemaakt.", top: PURPLE, rating: 5 },
+      { name: "Tom, Erasmus 2024", text: "Rustiger dan Parijs of Barcelona, maar net daardoor heel gezellig en betaalbaar.", top: GREEN, rating: 4 },
+    ],
+  },
+  valencia: {
+    name: "Valencia, Spanje", img: IMG.valencia, vibe: "Zon, strand, bruisend uitgaansleven",
+    stats: { kost: "€€", uitgaan: "Heel actief", taal: "ES" },
+    reviews: [
+      { name: "Lina, Erasmus 2025", text: "Beste Erasmus-stad qua sfeer, elke avond wel iets te doen en het strand vlakbij.", top: CORAL, rating: 5 },
+      { name: "Joren, Erasmus 2024", text: "Levensonderhoud was wat hoger dan verwacht, maar de ervaring was het meer dan waard.", top: AMBER, rating: 5 },
+    ],
+  },
+  paris: {
+    name: "Parijs, Frankrijk", img: IMG.paris, vibe: "Grootstad, cultuur, snel tempo",
+    stats: { kost: "€€€", uitgaan: "Veel keuze", taal: "FR" },
+    reviews: [
+      { name: "Amelia, Erasmus 2023", text: "Geweldige stad voor cultuur en musea, maar duurder wonen en minder studentikoos dan kleinere steden.", top: BLUE, rating: 4 },
+      { name: "Karim, Erasmus 2024", text: "Het openbaar vervoer is top, maar het kostte wel meer moeite om een hechte vriendengroep te vinden.", top: PURPLE, rating: 3 },
+    ],
+  },
+};
+
+function CitiesScreen({ go, openCity }) {
+  const cities = Object.entries(CITY_DATA);
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Vergelijk Erasmus-steden", onBack: () => go("home") }),
+    e("div", { key: "body", style: { padding: "12px 20px 0" } }, [
+      e("div", { key: 1, style: { borderRadius: 16, padding: 16, background: BLUE } }, [
+        e("p", { key: 1, style: { color: "white", fontWeight: 700, fontSize: 15, margin: 0 } }, "Nog geen stad gekozen?"),
+        e("p", { key: 2, style: { color: "rgba(255,255,255,0.8)", fontSize: 12, margin: "4px 0 0" } }, "Lees echte ervaringen van vorige Erasmus-studenten en vergelijk steden vóór je kiest."),
+      ]),
+      e(SectionLabel, { key: 2 }, e("span", { style: { display: "block", marginTop: 20 } }, "POPULAIRE BESTEMMINGEN")),
+      e("div", { key: 3, className: "col", style: { gap: 12 } },
+        cities.map(([key, c]) =>
+          e("button", { key, onClick: () => openCity(key), style: { width: "100%", textAlign: "left", borderRadius: 12, border: "1px solid #f1f1f4", overflow: "hidden" } }, [
+            e("img", { key: 1, src: c.img, alt: c.name, style: { width: "100%", height: 128, objectFit: "cover" } }),
+            e("div", { key: 2, style: { padding: 12 } }, [
+              e("p", { key: 1, style: { fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 } }, c.name),
+              e("p", { key: 2, style: { fontSize: 12, color: "#6b7280", margin: "2px 0 0" } }, c.vibe),
+              e("div", { key: 3, className: "row", style: { gap: 6, marginTop: 8 } }, [
+                e(Pill, { key: 1, color: BLUE, soft: BLUE_SOFT }, c.stats.kost),
+                e(Pill, { key: 2, color: BLUE, soft: BLUE_SOFT }, c.stats.uitgaan),
+                e(Pill, { key: 3, color: BLUE, soft: BLUE_SOFT }, c.stats.taal),
+              ]),
+            ]),
+          ])
+        )
+      ),
+    ]),
+  ]);
+}
+
+function CityDetailScreen({ cityKey, go }) {
+  const c = CITY_DATA[cityKey];
+  if (!c) return null;
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: c.name, onBack: () => go("cities") }),
+    e("img", { key: "img", src: c.img, alt: c.name, style: { width: "100%", height: 176, objectFit: "cover" } }),
+    e("div", { key: "body", style: { padding: "16px 20px 0" } }, [
+      e("p", { key: 1, style: { fontSize: 13, color: "#4b5563", margin: 0 } }, c.vibe),
+      e("div", { key: 2, className: "row", style: { gap: 6, marginTop: 8 } }, [
+        e(Pill, { key: 1, color: BLUE, soft: BLUE_SOFT, active: true }, `Kost: ${c.stats.kost}`),
+        e(Pill, { key: 2, color: BLUE, soft: BLUE_SOFT, active: true }, `Uitgaan: ${c.stats.uitgaan}`),
+        e(Pill, { key: 3, color: BLUE, soft: BLUE_SOFT, active: true }, `Taal: ${c.stats.taal}`),
+      ]),
+      e(SectionLabel, { key: 3 }, e("span", { style: { display: "block", marginTop: 20 } }, "ERVARINGEN VAN VORIGE STUDENTEN")),
+      e("div", { key: 4, className: "col", style: { gap: 8 } },
+        c.reviews.map((r, i) =>
+          e("div", { key: i, style: { borderRadius: 12, padding: 12, border: "1px solid #f1f1f4" } }, [
+            e("div", { key: 1, className: "row", style: { gap: 12 } }, [
+              e(PersonAvatar, { key: 1, size: 36, top: r.top }),
+              e("div", { key: 2, className: "grow" }, [
+                e("p", { key: 1, style: { fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 } }, r.name),
+                e("div", { key: 2, className: "row", style: { gap: 2, marginTop: 2 } }, Array.from({ length: 5 }).map((_, j) => e(Icon, { key: j, name: "star", size: 12, color: j < r.rating ? r.top : "#e5e7eb" }))),
+              ]),
+            ]),
+            e("p", { key: 2, style: { fontSize: 12, color: "#4b5563", margin: "8px 0 0", lineHeight: 1.5 } }, r.text),
+          ])
+        )
+      ),
+      e("button", { key: 5, onClick: () => go("cities"), style: { width: "100%", marginTop: 20, borderRadius: 12, padding: "12px 0", fontWeight: 600, fontSize: 14, background: BLUE_SOFT, color: BLUE } }, "Andere steden bekijken"),
+    ]),
+  ]);
+}
+
+/* ================= DOCS ================= */
+function DocsScreen() {
+  const items = [
+    { icon: "sparkles", title: "Vraag het de assistent", sub: "Visum, ziekenverzekering, bankrekening…" },
+    { icon: "filecheck", title: "Leerovereenkomst checken", sub: "Upload je document, wij vlaggen ontbrekende info" },
+    { icon: "wallet", title: "Budget", sub: "Houd je Erasmus-beurs overzichtelijk bij" },
+  ];
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Hulp & documenten" }),
+    e("div", { key: "body", className: "col", style: { padding: "12px 20px 0", gap: 8 } },
+      items.map((d, i) =>
+        e("button", { key: i, className: "row", style: { width: "100%", gap: 12, textAlign: "left", borderRadius: 12, padding: 16, border: "1px solid #f1f1f4" } }, [
+          e("div", { key: 1, style: { width: 40, height: 40, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", background: PURPLE_SOFT } }, e(Icon, { name: d.icon, size: 18, color: PURPLE_DARK })),
+          e("div", { key: 2 }, [
+            e("p", { key: 1, style: { fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 } }, d.title),
+            e("p", { key: 2, style: { fontSize: 12, color: "#6b7280", margin: 0 } }, d.sub),
+          ]),
+        ])
+      )
+    ),
+  ]);
+}
+
+/* ================= PROFIEL ================= */
+function ProfileScreen() {
+  const items = ["Mijn universiteit & docenten", "Buddy-instellingen", "Travel mode", "Taal & notificaties", "Privacy & gegevens"];
+  return e("div", { style: { paddingBottom: 96, background: "white", minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Profiel" }),
+    e("div", { key: "head", className: "row", style: { gap: 12, padding: "16px 20px 0" } }, [
+      e(PersonAvatar, { key: 1, size: 56, top: PURPLE }),
+      e("div", { key: 2 }, [
+        e("p", { key: 1, style: { fontSize: 16, fontWeight: 600, color: "#111827", margin: 0 } }, "Lena S."),
+        e("p", { key: 2, style: { fontSize: 12, color: "#6b7280", margin: 0 } }, "Erasmus · Universiteit Gent · t/m dec 2026"),
+      ]),
+    ]),
+    e("div", { key: "list", className: "col", style: { padding: "20px 20px 0", gap: 8 } },
+      items.map((s) =>
+        e("div", { key: s, className: "row between", style: { borderRadius: 12, padding: 14, border: "1px solid #f1f1f4" } }, [
+          e("span", { key: 1, style: { fontSize: 13, fontWeight: 500, color: "#1f2937" } }, s),
+          e(Icon, { key: 2, name: "chevron", size: 16, color: "#9ca3af" }),
+        ])
+      )
+    ),
+  ]);
+}
+
+/* ================= APP SHELL ================= */
+function ErasmusApp() {
+  const [screen, setScreen] = useState("home");
+  const [cityKey, setCityKey] = useState(null);
+  const tabs = [{ key: "home", icon: "home" }, { key: "travel", icon: "calendar" }, { key: "chat", icon: "chat" }, { key: "spots", icon: "pin" }, { key: "profile", icon: "user" }];
+
+  function openCity(key) { setCityKey(key); setScreen("cityDetail"); }
+
+  function renderScreen() {
+    switch (screen) {
+      case "chat": return e(ChatScreen);
+      case "spots": return e(SpotsScreen);
+      case "travel": return e(TravelScreen);
+      case "wonen": return e(WonenScreen);
+      case "docs": return e(DocsScreen);
+      case "discover": return e(DiscoverScreen, { go: setScreen });
+      case "cities": return e(CitiesScreen, { go: setScreen, openCity });
+      case "cityDetail": return e(CityDetailScreen, { cityKey, go: setScreen });
+      case "profile": return e(ProfileScreen);
+      case "event": return e(DocsScreen);
+      default: return e(HomeScreen, { go: setScreen });
+    }
+  }
+
+  return e("div", { style: { width: "100%", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0", background: "#E9E6F8" } },
+    e("div", { style: { width: 380, height: 800, background: "white", borderRadius: 40, boxShadow: "0 20px 50px rgba(108,92,231,0.18)", border: "6px solid white", overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" } }, [
+      e("div", { key: "notch", style: { display: "flex", justifyContent: "center", paddingTop: 8, paddingBottom: 4, background: "white", flexShrink: 0 } }, e("div", { style: { width: 96, height: 20, background: "#111827", borderRadius: 999 } })),
+      e("div", { key: "content", style: { flex: 1, overflowY: "auto", background: PAGE_BG } }, renderScreen()),
+      e("div", { key: "nav", style: { position: "absolute", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid #f1f1f4", display: "flex", justifyContent: "space-between", padding: "12px 28px" } },
+        tabs.map((t) => {
+          const active = screen === t.key;
+          return e("button", { key: t.key, onClick: () => setScreen(t.key), style: { display: "flex", alignItems: "center", justifyContent: "center" } }, e(Icon, { name: t.icon, size: 22, color: active ? PURPLE : "#c7c5d6" }));
+        })
+      ),
+    ])
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(e(ErasmusApp));
+</script>
+</body>
+</html>
