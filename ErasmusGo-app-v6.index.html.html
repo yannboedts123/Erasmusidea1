@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ErasmusGo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Archivo',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:#E9E5DC; }
+  button { font-family: inherit; border:none; background:none; cursor:pointer; padding:0; color:inherit; }
+  button:disabled { cursor:default; }
+  img { display:block; }
+  ::-webkit-scrollbar { width:0; height:0; }
+  .row { display:flex; align-items:center; }
+  .col { display:flex; flex-direction:column; }
+  .between { justify-content:space-between; }
+  .grow { flex:1; min-width:0; }
+  .truncate { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mono { font-family:'Space Mono',ui-monospace,'SF Mono',Menlo,monospace; }
+  @keyframes stampIn { 0% { transform:scale(1.6) rotate(8deg); opacity:0; } 100% { transform:scale(1) rotate(-8deg); opacity:1; } }
+  .stamp-in { animation: stampIn .4s cubic-bezier(.2,1.4,.4,1) both; }
+  @keyframes stampInBig { 0% { transform:scale(2.2) rotate(10deg); opacity:0; } 100% { transform:scale(1) rotate(-8deg); opacity:1; } }
+  .stamp-in-big { animation: stampInBig .55s cubic-bezier(.2,1.4,.4,1) both; }
+  @keyframes pop { 0% { transform:scale(.6); } 60% { transform:scale(1.15); } 100% { transform:scale(1); } }
+  .pop { animation: pop .25s ease-out both; }
+  @keyframes fadeUp { 0% { transform:translateY(10px); opacity:0; } 100% { transform:translateY(0); opacity:1; } }
+  .fade-up { animation: fadeUp .35s ease-out both; }
+  @keyframes growBar { 0% { width:0; } }
+  .grow-bar { animation: growBar .8s cubic-bezier(.2,.8,.3,1) both; }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+  #noscript-msg { display:block; padding:40px; text-align:center; color:#1D2A50; font-size:14px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="noscript-msg">Loading... If this message stays: open this file in Safari or Chrome (not inside the Mail or Files app), and make sure you have an internet connection.</div>
+<script>
+  window.addEventListener("error", function (e) {
+    var n = document.getElementById("noscript-msg");
+    if (n) n.style.display = "block";
+  });
+</script>
+<script>
+const { useState, createElement: e, Fragment } = React;
+
+/* ---------- design tokens: "living travel document" ---------- */
+const INK = "#1D2A50", INK_SOFT = "#E9ECF4";
+const STAMP = "#D64B33", STAMP_SOFT = "#FAE9E4";
+const SUN = "#E9A820", SUN_SOFT = "#FBF1D9";
+const SKY = "#3F6BC9", SKY_SOFT = "#E7EDFA";
+const MINT = "#2F9C6A", MINT_SOFT = "#E2F2E9";
+const PAPER = "#F6F4EE", LINE = "#E7E3D8";
+const TXT = "#1D2A50", SUB = "#7B7669";
+const GOLD = "#B98410";
+
+/* ---------- photos (Wikimedia Commons, free of rights) ---------- */
+const IMG = {
+  graslei: "https://commons.wikimedia.org/wiki/Special:FilePath/Graslei_Ghent.jpg?width=500",
+  gravensteen: "https://commons.wikimedia.org/wiki/Special:FilePath/Gent_Burg_Gravensteen_09.jpg?width=500",
+  belfort: "https://commons.wikimedia.org/wiki/Special:FilePath/Gent_Belfort.JPG?width=500",
+  valencia: "https://commons.wikimedia.org/wiki/Special:FilePath/Ciudad_de_las_Artes_y_las_Ciencias.JPG?width=500",
+  paris: "https://commons.wikimedia.org/wiki/Special:FilePath/Eiffel_Tower_20051010.jpg?width=500",
+};
+
+/* ---------- icons (no external libraries) ---------- */
+function Icon({ name, size = 20, color = "currentColor" }) {
+  const p = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" };
+  const paths = {
+    home: [e("path", { key: 1, d: "M3 11.5 12 4l9 7.5" }), e("path", { key: 2, d: "M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9" })],
+    calendar: [e("rect", { key: 1, x: 3, y: 5, width: 18, height: 16, rx: 2 }), e("path", { key: 2, d: "M3 9h18M8 3v4M16 3v4" })],
+    chat: [e("path", { key: 1, d: "M21 12a8 8 0 1 1-3.2-6.4L21 4l-1 4.2A8 8 0 0 1 21 12Z" })],
+    pin: [e("path", { key: 1, d: "M12 21s7-7.2 7-12a7 7 0 1 0-14 0c0 4.8 7 12 7 12Z" }), e("circle", { key: 2, cx: 12, cy: 9, r: 2.3 })],
+    user: [e("circle", { key: 1, cx: 12, cy: 8, r: 3.5 }), e("path", { key: 2, d: "M5 20c1.2-3.5 4-5 7-5s5.8 1.5 7 5" })],
+    search: [e("circle", { key: 1, cx: 11, cy: 11, r: 6.5 }), e("path", { key: 2, d: "M20 20l-4.3-4.3" })],
+    chevron: [e("path", { key: 1, d: "M9 6l6 6-6 6" })],
+    sparkles: [e("path", { key: 1, d: "M12 3v5M12 16v5M3 12h5M16 12h5M6 6l3 3M15 15l3 3M18 6l-3 3M9 15l-3 3" })],
+    filecheck: [e("path", { key: 1, d: "M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8l-4-5Z" }), e("path", { key: 2, d: "M9.5 13l1.7 1.7L14.5 11" })],
+    wallet: [e("rect", { key: 1, x: 3, y: 7, width: 18, height: 13, rx: 2 }), e("path", { key: 2, d: "M3 10h18M16 14h2" })],
+    users: [e("circle", { key: 1, cx: 9, cy: 8, r: 3 }), e("path", { key: 2, d: "M3 19c.8-3 3-4.5 6-4.5s5.2 1.5 6 4.5" }), e("circle", { key: 3, cx: 17, cy: 9, r: 2.3 }), e("path", { key: 4, d: "M16 14.2c2.3.3 3.7 1.6 4.3 3.8" })],
+    compass: [e("circle", { key: 1, cx: 12, cy: 12, r: 9 }), e("path", { key: 2, d: "M15 9l-2 6-6 2 2-6 6-2Z" })],
+    plus: [e("path", { key: 1, d: "M12 5v14M5 12h14" })],
+    building: [e("rect", { key: 1, x: 5, y: 3, width: 14, height: 18, rx: 1 }), e("path", { key: 2, d: "M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01" })],
+    coffee: [e("path", { key: 1, d: "M4 9h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" }), e("path", { key: 2, d: "M17 10h1.5a2 2 0 1 1 0 4H17" }), e("path", { key: 3, d: "M7 3c0 1-1 1-1 2M11 3c0 1-1 1-1 2" })],
+    food: [e("path", { key: 1, d: "M6 3v8a2 2 0 0 0 4 0V3M8 11v10M16 3c-1.5 0-2.5 1.5-2.5 4s1 4 2.5 4v9" })],
+    book: [e("path", { key: 1, d: "M4 5a2 2 0 0 1 2-2h6v17H6a2 2 0 0 1-2-2V5Z" }), e("path", { key: 2, d: "M12 3h6a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-6" })],
+    party: [e("path", { key: 1, d: "M4 20l3-10 13-6-6 13-10 3Z" }), e("path", { key: 2, d: "M13 11l3 3" })],
+    heart: [e("path", { key: 1, d: "M12 20s-7-4.4-9.3-8.8C1.4 8 3 5 6.2 5 8.4 5 10 6.3 12 8.5 14 6.3 15.6 5 17.8 5 21 5 22.6 8 21.3 11.2 19 15.6 12 20 12 20Z" })],
+    star: [e("path", { key: 1, d: "M12 2.5l2.9 6 6.6.8-4.8 4.6 1.2 6.6L12 17.3 6.1 20.5l1.2-6.6-4.8-4.6 6.6-.8L12 2.5Z" })],
+    back: [e("path", { key: 1, d: "M19 12H5M11 6l-6 6 6 6" })],
+    scale: [e("path", { key: 1, d: "M12 3v18M5 8l3-4 3 4M16 8l3-4 3 4M3 8h6M16 8h6M5 8c0 3-2 5-2 5h4s-2-2-2-5ZM19 8c0 3-2 5-2 5h4s-2-2-2-5Z" })],
+    check: [e("path", { key: 1, d: "M5 12.5l4.5 4.5L19 7" })],
+    plane: [e("path", { key: 1, d: "M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" })],
+  };
+  if (name === "star") return e("svg", { ...p, fill: color, stroke: "none" }, paths.star);
+  if (name === "plane") return e("svg", { ...p, fill: color, stroke: "none", strokeWidth: 0 }, paths.plane);
+  return e("svg", p, paths[name] || null);
+}
+
+/* ---------- illustrated avatar (no real photo, for privacy) ---------- */
+function PersonAvatar({ size = 40, top = INK, skin = "#F0C29B", hair = "#5B4233" }) {
+  return e("svg", { width: size, height: size, viewBox: "0 0 64 64", style: { borderRadius: "50%", flexShrink: 0, background: "white" } }, [
+    e("circle", { key: 1, cx: 32, cy: 32, r: 32, fill: top, opacity: 0.14 }),
+    e("circle", { key: 2, cx: 32, cy: 27, r: 12, fill: skin }),
+    e("path", { key: 3, d: "M20 24c0-8 6-13 12-13s12 5 12 13c-3-2-6-3-12-3s-9 1-12 3Z", fill: hair }),
+    e("path", { key: 4, d: "M14 58c2-10 9-16 18-16s16 6 18 16Z", fill: top }),
+  ]);
+}
+
+function AvatarStack({ tones, size = 26, ring = INK }) {
+  return e("div", { className: "row" },
+    tones.map((t, i) =>
+      e("div", { key: i, style: { marginLeft: i ? -9 : 0, borderRadius: "50%", border: "2px solid " + ring, lineHeight: 0 } }, e(PersonAvatar, { size, top: t }))
+    )
+  );
+}
+
+/* ---------- building blocks ---------- */
+function TopBar({ title, onBack }) {
+  return e("div", { className: "row", style: { gap: 8, padding: "16px 20px 12px", background: PAPER, position: "sticky", top: 0, zIndex: 10 } }, [
+    onBack && e("button", { key: "b", onClick: onBack, style: { padding: 4, marginLeft: -4, borderRadius: 999 } }, e(Icon, { name: "back", size: 20, color: TXT })),
+    e("h1", { key: "t", className: "grow", style: { fontSize: 19, fontWeight: 800, color: TXT, margin: 0, letterSpacing: -0.3 } }, title),
+  ]);
+}
+
+function Eyebrow({ children, right }) {
+  return e("div", { className: "row between", style: { marginBottom: 10 } }, [
+    e("p", { key: 1, className: "mono", style: { fontSize: 10, fontWeight: 700, color: SUB, letterSpacing: 1.6, margin: 0, textTransform: "uppercase" } }, children),
+    right ? e("span", { key: 2, className: "mono", style: { fontSize: 10, fontWeight: 700, color: TXT, letterSpacing: 1 } }, right) : null,
+  ]);
+}
+
+function Card({ children, style, onClick, className }) {
+  const base = { background: "white", borderRadius: 16, border: "1px solid " + LINE, padding: 14 };
+  if (onClick) return e("button", { onClick, className, style: { ...base, textAlign: "left", width: "100%", ...style } }, children);
+  return e("div", { className, style: { ...base, ...style } }, children);
+}
+
+function Pill({ children, color = INK, soft = INK_SOFT, solid = false }) {
+  return e("span", { style: { fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap", background: solid ? color : soft, color: solid ? "white" : color, display: "inline-block" } }, children);
+}
+
+function Bar({ pct, color = STAMP, animate = false }) {
+  return e("div", { style: { height: 6, borderRadius: 999, background: INK_SOFT, overflow: "hidden" } },
+    e("div", { className: animate ? "grow-bar" : "", style: { height: "100%", width: pct + "%", borderRadius: 999, background: color, transition: "width .4s ease" } })
+  );
+}
+
+function PrimaryButton({ children, onClick, disabled, style }) {
+  return e("button", { onClick, disabled, style: { width: "100%", borderRadius: 14, padding: "14px 0", fontWeight: 700, fontSize: 14.5, background: disabled ? INK_SOFT : INK, color: disabled ? SUB : "white", transition: "background .2s", ...style } }, children);
+}
+
+/* ---------- stamp (the app's signature) ---------- */
+function StampCircle({ label, state, sub }) {
+  const done = state === "done", next = state === "next";
+  const border = done ? "2.5px solid " + STAMP : next ? "2px dashed " + SUN : "2px dashed " + LINE;
+  return e("div", { className: "col", style: { alignItems: "center", width: 76, flexShrink: 0, gap: 6 } }, [
+    e("div", { key: 1, className: done ? "stamp-in" : "", style: { width: 56, height: 56, borderRadius: "50%", border, display: "flex", alignItems: "center", justifyContent: "center", background: done ? STAMP_SOFT : "white", transform: done ? "rotate(-8deg)" : "none" } },
+      done ? e(Icon, { name: "check", size: 22, color: STAMP })
+        : next ? e("span", { className: "mono", style: { fontSize: 12, fontWeight: 700, color: GOLD } }, sub || "")
+        : e(Icon, { name: "star", size: 14, color: LINE })
+    ),
+    e("span", { key: 2, className: "mono", style: { fontSize: 8.5, fontWeight: 700, letterSpacing: 0.8, color: done ? TXT : SUB, textAlign: "center", lineHeight: 1.4 } }, label),
+  ]);
+}
+
+/* ---------- city data ---------- */
+const CITY_META = {
+  gent: { name: "Ghent", country: "Belgium", flag: "\uD83C\uDDE7\uD83C\uDDEA", uni: "Ghent University" },
+  valencia: { name: "Valencia", country: "Spain", flag: "\uD83C\uDDEA\uD83C\uDDF8", uni: "UPV Valencia" },
+  paris: { name: "Paris", country: "France", flag: "\uD83C\uDDEB\uD83C\uDDF7", uni: "Sorbonne" },
+};
+
+const CITY_DATA = {
+  gent: {
+    name: "Ghent, Belgium", img: IMG.graslei, vibe: "Small, cozy, very student-minded",
+    stats: { cost: "\u20AC\u20AC", nightlife: "Student vibe", lang: "NL/EN" },
+    reviews: [
+      { name: "Sara, Erasmus 2025", text: "Compact city, everything is reachable by bike. Tons of international students, so I made friends fast.", top: INK, rating: 5 },
+      { name: "Tom, Erasmus 2024", text: "Quieter than Paris or Barcelona, but that's exactly what makes it cozy and affordable.", top: MINT, rating: 4 },
+    ],
+  },
+  valencia: {
+    name: "Valencia, Spain", img: IMG.valencia, vibe: "Sun, beach, buzzing nightlife",
+    stats: { cost: "\u20AC\u20AC", nightlife: "Very active", lang: "ES" },
+    reviews: [
+      { name: "Lina, Erasmus 2025", text: "Best Erasmus city for atmosphere \u2014 something to do every night, with the beach right there.", top: STAMP, rating: 5 },
+      { name: "Joren, Erasmus 2024", text: "Living costs were a bit higher than expected, but the experience was more than worth it.", top: SUN, rating: 5 },
+    ],
+  },
+  paris: {
+    name: "Paris, France", img: IMG.paris, vibe: "Big city, culture, fast pace",
+    stats: { cost: "\u20AC\u20AC\u20AC", nightlife: "Endless choice", lang: "FR" },
+    reviews: [
+      { name: "Amelia, Erasmus 2023", text: "Amazing for culture and museums, but housing is pricier and it's less student-centered than smaller cities.", top: SKY, rating: 4 },
+      { name: "Karim, Erasmus 2024", text: "Public transport is great, but it took more effort to find a close group of friends.", top: INK, rating: 3 },
+    ],
+  },
+};
+
+/* ---------- city match quiz scoring ---------- */
+/* profiles: budget 0 tight / 1 comfortable / 2 flexible; nightlife 0 low / 1 mid / 2 high */
+const CITY_PROFILE = {
+  gent: { budget: 0, vibe: "cozy", night: 1 },
+  valencia: { budget: 1, vibe: "beach", night: 2 },
+  paris: { budget: 2, vibe: "city", night: 1 },
+};
+function scoreCities(a) {
+  return Object.keys(CITY_PROFILE).map((key) => {
+    const p = CITY_PROFILE[key];
+    const budgetPts = Math.max(5, 35 - 15 * Math.abs(a.budget - p.budget));
+    const vibePts = a.vibe === p.vibe ? 40 : 15;
+    const nightPts = Math.max(5, 25 - 8 * Math.abs(a.night - p.night));
+    return { key, pct: Math.min(98, budgetPts + vibePts + nightPts) };
+  }).sort((x, y) => y.pct - x.pct);
+}
+
+/* ================= ONBOARDING ================= */
+function StepDots({ step, total = 4 }) {
+  return e("div", { className: "row", style: { gap: 6, justifyContent: "center" } },
+    Array.from({ length: total }).map((_, i) =>
+      e("div", { key: i, style: { width: i === step ? 18 : 6, height: 6, borderRadius: 999, background: i === step ? INK : LINE, transition: "all .25s" } })
+    )
+  );
+}
+
+function OptionCard({ icon, iconColor, iconBg, title, sub, selected, onClick }) {
+  return e("button", { onClick, className: "row fade-up", style: { width: "100%", gap: 12, textAlign: "left", borderRadius: 16, padding: 14, background: "white", border: selected ? "2px solid " + INK : "1px solid " + LINE, boxShadow: selected ? "0 4px 14px rgba(29,42,80,0.12)" : "none", transition: "all .15s" } }, [
+    e("div", { key: 1, style: { width: 44, height: 44, borderRadius: 12, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, e(Icon, { name: icon, size: 20, color: iconColor })),
+    e("div", { key: 2, className: "grow" }, [
+      e("p", { key: 1, style: { fontSize: 14.5, fontWeight: 700, color: TXT, margin: 0 } }, title),
+      e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: "3px 0 0", lineHeight: 1.45 } }, sub),
+    ]),
+    e("div", { key: 3, style: { width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: selected ? INK : "white", border: selected ? "none" : "2px solid " + LINE } },
+      selected ? e(Icon, { name: "check", size: 13, color: "white" }) : null),
+  ]);
+}
+
+const QUIZ = [
+  { q: "What's your monthly budget like?", key: "budget", options: [
+    { label: "Keeping it tight", sub: "Every euro counts", value: 0, tag: "\u20AC" },
+    { label: "Comfortable", sub: "Room for fun, within reason", value: 1, tag: "\u20AC\u20AC" },
+    { label: "Flexible", sub: "The experience comes first", value: 2, tag: "\u20AC\u20AC\u20AC" },
+  ]},
+  { q: "Pick your perfect afternoon", key: "vibe", options: [
+    { label: "Beach & sunshine", sub: "Sea breeze, sand, sunset drinks", value: "beach", tag: "\u2600\uFE0E" },
+    { label: "Museums & big-city buzz", sub: "Culture, metro rides, endless streets", value: "city", tag: "\u25A0" },
+    { label: "Caf\u00E9 terraces in a cozy town", sub: "Everything close by, familiar faces", value: "cozy", tag: "\u2665\uFE0E" },
+  ]},
+  { q: "How important is nightlife?", key: "night", options: [
+    { label: "Essential", sub: "The nights make the semester", value: 2, tag: "\u2605" },
+    { label: "Nice to have", sub: "Sometimes out, sometimes chill", value: 1, tag: "\u25D1" },
+    { label: "Not really my thing", sub: "Give me daytime plans", value: 0, tag: "\u263E" },
+  ]},
+];
+
+function OnboardingFlow({ onDone }) {
+  const [step, setStep] = useState(0);          // 0 welcome, 1 journey, 2 branch, 3 stamp
+  const [journey, setJourney] = useState(null); // 'compare' | 'prep' | 'arrived'
+  const [city, setCity] = useState(null);
+  const [quizIdx, setQuizIdx] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [picked, setPicked] = useState(null);   // flash selection in quiz
+  const [matches, setMatches] = useState(null);
+
+  const wrap = (children) => e("div", { className: "col", style: { minHeight: "100%", background: PAPER, padding: "20px 24px 24px" } }, children);
+
+  /* ----- step 0: welcome ----- */
+  if (step === 0) return wrap([
+    e("div", { key: "top", className: "grow col", style: { justifyContent: "center", gap: 0 } }, [
+      e("div", { key: "ticket", className: "fade-up", style: { position: "relative", borderRadius: 22, overflow: "hidden", background: INK, padding: "26px 22px 22px" } }, [
+        e("div", { key: 1, className: "row between" }, [
+          e("span", { key: 1, className: "mono", style: { fontSize: 10, fontWeight: 700, letterSpacing: 2, color: "rgba(255,255,255,0.6)" } }, "BOARDING PASS"),
+          e(Icon, { key: 2, name: "plane", size: 20, color: SUN }),
+        ]),
+        e("p", { key: 2, style: { color: "white", fontWeight: 800, fontSize: 27, margin: "16px 0 6px", letterSpacing: -0.6, lineHeight: 1.15 } }, "Your Erasmus,\nall in one place."),
+        e("p", { key: 3, style: { color: "rgba(255,255,255,0.7)", fontSize: 13.5, margin: 0, lineHeight: 1.55 } }, "Compare cities, meet students, find your spots and collect stamps along the way."),
+        e("div", { key: 4, style: { position: "relative", margin: "20px -22px 14px" } }, [
+          e("div", { key: 1, style: { borderTop: "2px dashed rgba(255,255,255,0.3)" } }),
+          e("div", { key: 2, style: { position: "absolute", left: -9, top: -9, width: 18, height: 18, borderRadius: "50%", background: PAPER } }),
+          e("div", { key: 3, style: { position: "absolute", right: -9, top: -9, width: 18, height: 18, borderRadius: "50%", background: PAPER } }),
+        ]),
+        e("div", { key: 5, className: "row between" }, [
+          e("span", { key: 1, className: "mono", style: { fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: "rgba(255,255,255,0.6)" } }, "PASSENGER: YOU"),
+          e("span", { key: 2, className: "mono", style: { fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: SUN } }, "GATE: OPEN"),
+        ]),
+      ]),
+      e("div", { key: "stamps", className: "row", style: { gap: 10, justifyContent: "center", marginTop: 26, opacity: 0.9 } }, [
+        e(StampCircle, { key: 1, label: "ARRIVAL", state: "done" }),
+        e(StampCircle, { key: 2, label: "FIRST TRIP", state: "done" }),
+        e(StampCircle, { key: 3, label: "20 WEEKS", state: "next", sub: "?" }),
+      ]),
+    ]),
+    e(PrimaryButton, { key: "cta", onClick: () => setStep(1) }, "Get started"),
+    e("div", { key: "dots", style: { marginTop: 16 } }, e(StepDots, { step: 0 })),
+  ]);
+
+  /* ----- step 1: journey question ----- */
+  if (step === 1) return wrap([
+    e("button", { key: "back", onClick: () => setStep(0), style: { alignSelf: "flex-start", padding: 4, marginLeft: -4 } }, e(Icon, { name: "back", size: 20, color: TXT })),
+    e("p", { key: "eb", className: "mono", style: { fontSize: 10, fontWeight: 700, letterSpacing: 1.8, color: SUB, margin: "18px 0 6px", textTransform: "uppercase" } }, "Question 1 of 2"),
+    e("h1", { key: "q", style: { fontSize: 23, fontWeight: 800, color: TXT, margin: "0 0 18px", letterSpacing: -0.4, lineHeight: 1.2 } }, "Where are you on your Erasmus journey?"),
+    e("div", { key: "opts", className: "col grow", style: { gap: 10 } }, [
+      e(OptionCard, { key: 1, icon: "scale", iconColor: GOLD, iconBg: SUN_SOFT, title: "Still deciding where to go", sub: "Help me compare destinations and find my best match", selected: journey === "compare", onClick: () => setJourney("compare") }),
+      e(OptionCard, { key: 2, icon: "compass", iconColor: SKY, iconBg: SKY_SOFT, title: "City confirmed \u2014 not there yet", sub: "Show me around my future city and connect me with students", selected: journey === "prep", onClick: () => setJourney("prep") }),
+      e(OptionCard, { key: 3, icon: "pin", iconColor: STAMP, iconBg: STAMP_SOFT, title: "Already on Erasmus", sub: "I've arrived \u2014 show me what's happening around me", selected: journey === "arrived", onClick: () => setJourney("arrived") }),
+    ]),
+    e(PrimaryButton, { key: "cta", disabled: !journey, onClick: () => setStep(2) }, "Continue"),
+    e("div", { key: "dots", style: { marginTop: 16 } }, e(StepDots, { step: 1 })),
+  ]);
+
+  /* ----- step 2a: match quiz (compare path) ----- */
+  if (step === 2 && journey === "compare") {
+    if (matches) {
+      const top = matches[0];
+      return wrap([
+        e("p", { key: "eb", className: "mono", style: { fontSize: 10, fontWeight: 700, letterSpacing: 1.8, color: SUB, margin: "8px 0 6px", textTransform: "uppercase" } }, "Your matches"),
+        e("h1", { key: "t", style: { fontSize: 23, fontWeight: 800, color: TXT, margin: "0 0 16px", letterSpacing: -0.4 } }, CITY_META[top.key].name + " looks like your kind of city " + CITY_META[top.key].flag),
+        e("div", { key: "list", className: "col grow", style: { gap: 10 } },
+          matches.map((m, i) => {
+            const meta = CITY_META[m.key];
+            return e(Card, { key: m.key, className: "fade-up", style: { padding: i === 0 ? 0 : 14, overflow: "hidden", border: i === 0 ? "2px solid " + INK : "1px solid " + LINE, animationDelay: (i * 0.12) + "s" } },
+              i === 0
+                ? [
+                    e("img", { key: "img", src: CITY_DATA[m.key].img, alt: meta.name, style: { width: "100%", height: 110, objectFit: "cover" } }),
+                    e("div", { key: "b", style: { padding: 14 } }, [
+                      e("div", { key: 1, className: "row between" }, [
+                        e("p", { key: 1, style: { fontSize: 16, fontWeight: 800, color: TXT, margin: 0 } }, meta.name + ", " + meta.country),
+                        e("span", { key: 2, className: "mono", style: { fontSize: 13, fontWeight: 700, color: STAMP } }, m.pct + "%"),
+                      ]),
+                      e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: "2px 0 10px" } }, CITY_DATA[m.key].vibe),
+                      e(Bar, { key: 3, pct: m.pct, animate: true }),
+                    ]),
+                  ]
+                : [
+                    e("div", { key: 1, className: "row between" }, [
+                      e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, meta.flag + "  " + meta.name),
+                      e("span", { key: 2, className: "mono", style: { fontSize: 12, fontWeight: 700, color: SUB } }, m.pct + "%"),
+                    ]),
+                    e("div", { key: 2, style: { marginTop: 8 } }, e(Bar, { pct: m.pct, color: SUB, animate: true })),
+                  ]
+            );
+          })
+        ),
+        e("p", { key: "note", style: { fontSize: 12, color: SUB, margin: "14px 0", textAlign: "center", lineHeight: 1.5 } }, "You can dive into real student reviews from your home screen."),
+        e(PrimaryButton, { key: "cta", onClick: () => setStep(3) }, "Continue"),
+        e("div", { key: "dots", style: { marginTop: 16 } }, e(StepDots, { step: 2 })),
+      ]);
+    }
+    const q = QUIZ[quizIdx];
+    return wrap([
+      e("button", { key: "back", onClick: () => quizIdx === 0 ? setStep(1) : setQuizIdx(quizIdx - 1), style: { alignSelf: "flex-start", padding: 4, marginLeft: -4 } }, e(Icon, { name: "back", size: 20, color: TXT })),
+      e("p", { key: "eb", className: "mono", style: { fontSize: 10, fontWeight: 700, letterSpacing: 1.8, color: SUB, margin: "18px 0 6px", textTransform: "uppercase" } }, "Find your match \u00B7 " + (quizIdx + 1) + " of 3"),
+      e("h1", { key: "q", style: { fontSize: 23, fontWeight: 800, color: TXT, margin: "0 0 6px", letterSpacing: -0.4, lineHeight: 1.2 } }, q.q),
+      e("div", { key: "bar", style: { margin: "10px 0 18px" } }, e(Bar, { pct: (quizIdx / 3) * 100, color: SUN })),
+      e("div", { key: "opts", className: "col grow", style: { gap: 10 } },
+        q.options.map((o, i) =>
+          e("button", { key: o.label, onClick: () => {
+              if (picked !== null) return;
+              setPicked(i);
+              const nextAnswers = { ...answers, [q.key]: o.value };
+              setAnswers(nextAnswers);
+              setTimeout(() => {
+                setPicked(null);
+                if (quizIdx < 2) setQuizIdx(quizIdx + 1);
+                else setMatches(scoreCities(nextAnswers));
+              }, 260);
+            },
+            className: "row fade-up",
+            style: { width: "100%", gap: 12, textAlign: "left", borderRadius: 16, padding: 14, background: picked === i ? INK : "white", border: picked === i ? "2px solid " + INK : "1px solid " + LINE, transition: "all .15s", animationDelay: (i * 0.06) + "s" } }, [
+            e("span", { key: 1, className: "mono", style: { width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, background: picked === i ? "rgba(255,255,255,0.15)" : INK_SOFT, color: picked === i ? "white" : TXT } }, o.tag),
+            e("div", { key: 2, className: "grow" }, [
+              e("p", { key: 1, style: { fontSize: 14.5, fontWeight: 700, color: picked === i ? "white" : TXT, margin: 0 } }, o.label),
+              e("p", { key: 2, style: { fontSize: 12, color: picked === i ? "rgba(255,255,255,0.7)" : SUB, margin: "2px 0 0" } }, o.sub),
+            ]),
+          ])
+        )
+      ),
+      e("div", { key: "dots", style: { marginTop: 16 } }, e(StepDots, { step: 2 })),
+    ]);
+  }
+
+  /* ----- step 2b: city select (prep & arrived paths) ----- */
+  if (step === 2) return wrap([
+    e("button", { key: "back", onClick: () => setStep(1), style: { alignSelf: "flex-start", padding: 4, marginLeft: -4 } }, e(Icon, { name: "back", size: 20, color: TXT })),
+    e("p", { key: "eb", className: "mono", style: { fontSize: 10, fontWeight: 700, letterSpacing: 1.8, color: SUB, margin: "18px 0 6px", textTransform: "uppercase" } }, "Question 2 of 2"),
+    e("h1", { key: "q", style: { fontSize: 23, fontWeight: 800, color: TXT, margin: "0 0 18px", letterSpacing: -0.4, lineHeight: 1.2 } }, journey === "arrived" ? "Which city are you in?" : "Which city is your home base?"),
+    e("div", { key: "opts", className: "col grow", style: { gap: 10 } },
+      Object.keys(CITY_META).map((key, i) => {
+        const m = CITY_META[key];
+        const selected = city === key;
+        return e("button", { key, onClick: () => setCity(key), className: "fade-up", style: { width: "100%", textAlign: "left", borderRadius: 16, overflow: "hidden", background: "white", border: selected ? "2px solid " + INK : "1px solid " + LINE, boxShadow: selected ? "0 4px 14px rgba(29,42,80,0.12)" : "none", transition: "all .15s", animationDelay: (i * 0.06) + "s" } }, [
+          e("img", { key: 1, src: CITY_DATA[key].img, alt: m.name, style: { width: "100%", height: 84, objectFit: "cover", opacity: selected ? 1 : 0.85 } }),
+          e("div", { key: 2, className: "row between", style: { padding: "10px 14px" } }, [
+            e("p", { key: 1, style: { fontSize: 14.5, fontWeight: 700, color: TXT, margin: 0 } }, m.flag + "  " + m.name + ", " + m.country),
+            e("div", { key: 2, style: { width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: selected ? INK : "white", border: selected ? "none" : "2px solid " + LINE } },
+              selected ? e(Icon, { name: "check", size: 13, color: "white" }) : null),
+          ]),
+        ]);
+      })
+    ),
+    e(PrimaryButton, { key: "cta", disabled: !city, onClick: () => setStep(3) }, "Continue"),
+    e("div", { key: "dots", style: { marginTop: 16 } }, e(StepDots, { step: 2 })),
+  ]);
+
+  /* ----- step 3: stamp splash ----- */
+  const stampLabel = journey === "compare" ? "EXPLORER" : journey === "prep" ? "PRE-FLIGHT" : "TOUCHDOWN";
+  const meta = city ? CITY_META[city] : null;
+  const splashTitle = journey === "compare" ? "You're all set, explorer" : journey === "prep" ? (meta.name + " is waiting for you") : ("Welcome to " + meta.name + "!");
+  const splashSub = journey === "compare"
+    ? "Your city matches are ready on your home screen. First stamp earned."
+    : journey === "prep"
+      ? "We'll help you get ready, step by step. First stamp earned."
+      : "Your first stamp is in the passport. Time to explore.";
+  return wrap([
+    e("div", { key: "mid", className: "grow col", style: { alignItems: "center", justifyContent: "center", gap: 0 } }, [
+      e("div", { key: "stamp", className: "stamp-in-big", style: { width: 118, height: 118, borderRadius: "50%", border: "3px solid " + STAMP, background: STAMP_SOFT, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, transform: "rotate(-8deg)" } }, [
+        e(Icon, { key: 1, name: "check", size: 34, color: STAMP }),
+        e("span", { key: 2, className: "mono", style: { fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: STAMP } }, stampLabel),
+      ]),
+      e("h1", { key: "t", className: "fade-up", style: { fontSize: 23, fontWeight: 800, color: TXT, margin: "26px 0 8px", letterSpacing: -0.4, textAlign: "center", animationDelay: ".25s" } }, splashTitle),
+      e("p", { key: "s", className: "fade-up", style: { fontSize: 13.5, color: SUB, margin: 0, textAlign: "center", lineHeight: 1.55, maxWidth: 260, animationDelay: ".35s" } }, splashSub),
+    ]),
+    e(PrimaryButton, { key: "cta", onClick: () => onDone({ mode: journey, cityKey: city || "gent", matches }) }, "Enter ErasmusGo"),
+    e("div", { key: "dots", style: { marginTop: 16 } }, e(StepDots, { step: 3 })),
+  ]);
+}
+
+/* ---------- ticket hero: tonight's boarding pass ---------- */
+function TicketHero({ uniShort }) {
+  const [going, setGoing] = useState(false);
+  const count = going ? 43 : 42;
+  const spots = going ? 7 : 8;
+  return e("div", { style: { position: "relative", borderRadius: 20, overflow: "hidden", background: INK, padding: "16px 16px 14px" } }, [
+    e("div", { key: "top", className: "row between" }, [
+      e("span", { key: 1, className: "mono", style: { fontSize: 10, fontWeight: 700, letterSpacing: 1.6, color: "rgba(255,255,255,0.65)" } }, "TONIGHT \u00B7 8 PM"),
+      e(Pill, { key: 2, color: INK, soft: SUN }, "Free"),
+    ]),
+    e("p", { key: "title", style: { color: "white", fontWeight: 800, fontSize: 19, margin: "10px 0 2px", letterSpacing: -0.3 } }, "ESN Pub Quiz Night"),
+    e("p", { key: "sub", style: { color: "rgba(255,255,255,0.7)", fontSize: 13, margin: 0 } }, "Caf\u00E9 De Geus \u00B7 Overpoort"),
+    e("div", { key: "perf", style: { position: "relative", margin: "14px -16px" } }, [
+      e("div", { key: 1, style: { borderTop: "2px dashed rgba(255,255,255,0.3)" } }),
+      e("div", { key: 2, style: { position: "absolute", left: -9, top: -9, width: 18, height: 18, borderRadius: "50%", background: PAPER } }),
+      e("div", { key: 3, style: { position: "absolute", right: -9, top: -9, width: 18, height: 18, borderRadius: "50%", background: PAPER } }),
+    ]),
+    e("div", { key: "bottom", className: "row between", style: { gap: 12 } }, [
+      e("div", { key: 1, className: "row", style: { gap: 10 } }, [
+        e(AvatarStack, { key: 1, tones: [STAMP, MINT, SKY] }),
+        e("div", { key: 2 }, [
+          e("p", { key: 1, style: { color: "white", fontSize: 13, fontWeight: 700, margin: 0 } }, count + " going"),
+          e("p", { key: 2, style: { color: "rgba(255,255,255,0.6)", fontSize: 11, margin: 0 } }, "6 from " + uniShort + " \u00B7 " + spots + " spots left"),
+        ]),
+      ]),
+      e("button", { key: 2, className: going ? "pop" : "", onClick: () => setGoing(!going), style: { flexShrink: 0, borderRadius: 999, padding: "9px 14px", fontSize: 13, fontWeight: 700, background: going ? SUN : "white", color: INK } }, going ? "You're in! \u2713" : "Count me in"),
+    ]),
+  ]);
+}
+
+/* ---------- home sections (shared) ---------- */
+function StampsCard({ stamps, hint }) {
+  const doneStamps = stamps.filter(s => s.state === "done").length;
+  return e(Card, { style: { padding: "14px 0 14px 14px" } }, [
+    e("div", { key: 1, style: { paddingRight: 14 } }, e(Eyebrow, { right: doneStamps + "/" + stamps.length }, "Your stamp card")),
+    e("div", { key: 2, className: "row", style: { gap: 4, overflowX: "auto", paddingBottom: 4, paddingRight: 14 } },
+      stamps.map((s, i) => e(StampCircle, { key: i, ...s }))
+    ),
+    e("div", { key: 3, style: { marginTop: 10, paddingRight: 14 } }, e(Bar, { pct: (doneStamps / stamps.length) * 100 })),
+    e("p", { key: 4, style: { fontSize: 12, color: SUB, margin: "8px 14px 0 0" } }, hint),
+  ]);
+}
+
+function ShortcutsGrid({ go }) {
+  const shortcuts = [
+    { icon: "chat", label: "Chat", key: "chat", bg: SKY_SOFT, color: SKY },
+    { icon: "pin", label: "Spots", key: "spots", bg: STAMP_SOFT, color: STAMP },
+    { icon: "calendar", label: "Trips", key: "travel", bg: MINT_SOFT, color: MINT },
+    { icon: "building", label: "Housing", key: "wonen", bg: SUN_SOFT, color: GOLD },
+  ];
+  return e("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 } },
+    shortcuts.map((it) =>
+      e("button", { key: it.key, onClick: () => go(it.key), className: "col", style: { alignItems: "center", gap: 6, background: "white", border: "1px solid " + LINE, borderRadius: 16, padding: "12px 0" } }, [
+        e("div", { key: 1, style: { width: 40, height: 40, borderRadius: 12, background: it.bg, display: "flex", alignItems: "center", justifyContent: "center" } }, e(Icon, { name: it.icon, size: 20, color: it.color })),
+        e("span", { key: 2, style: { fontSize: 11, color: TXT, fontWeight: 600 } }, it.label),
+      ])
+    )
+  );
+}
+
+function EventsList({ events }) {
+  return e("div", { className: "col", style: { gap: 8 } },
+    events.map((ev, i) =>
+      e(Card, { key: i, className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+        e("div", { key: 1, style: { width: 8, height: 8, borderRadius: 999, background: ev.free ? MINT : SKY, flexShrink: 0 } }),
+        e("div", { key: 2, className: "grow" }, [
+          e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, ev.name),
+          e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: 0 } }, ev.info),
+        ]),
+        ev.scarce
+          ? e(Pill, { key: 3, color: STAMP, soft: STAMP_SOFT }, ev.scarce)
+          : e(Pill, { key: 3, color: ev.free ? MINT : SKY, soft: ev.free ? MINT_SOFT : SKY_SOFT }, ev.price),
+      ])
+    )
+  );
+}
+
+function BuddyCard({ go }) {
+  return e(Card, { className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+    e("div", { key: 1, style: { position: "relative", lineHeight: 0 } }, [
+      e(PersonAvatar, { key: 1, size: 42, top: MINT, skin: "#E2A878", hair: "#1C1C1C" }),
+      e("div", { key: 2, style: { position: "absolute", right: 0, bottom: 0, width: 11, height: 11, borderRadius: "50%", background: MINT, border: "2px solid white" } }),
+    ]),
+    e("div", { key: 2, className: "grow" }, [
+      e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, "Matteo Verdi"),
+      e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: 0 } }, "IT \u00B7 2nd-year Erasmus \u00B7 online now"),
+    ]),
+    e("button", { key: 3, onClick: () => go("chat"), style: { width: 38, height: 38, borderRadius: 999, background: SKY_SOFT, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, e(Icon, { name: "chat", size: 16, color: SKY })),
+  ]);
+}
+
+/* ---------- feature guide (prep mode) ---------- */
+const GUIDE_TIPS = [
+  { icon: "chat", color: SKY, bg: SKY_SOFT, title: "City chats & your buddy", sub: "Say hi to your city group and your buddy before you even land." },
+  { icon: "pin", color: STAMP, bg: STAMP_SOFT, title: "Student-approved spots", sub: "Cafés, food and study places \u2014 rated by students like you." },
+  { icon: "calendar", color: MINT, bg: MINT_SOFT, title: "Trips with your people", sub: "Plan weekends together and split the budget automatically." },
+  { icon: "building", color: GOLD, bg: SUN_SOFT, title: "Housing, minus the stress", sub: "Find rooms and get your rental contract checked for free." },
+];
+
+function GuideCard({ onDismiss }) {
+  const [tip, setTip] = useState(0);
+  const t = GUIDE_TIPS[tip];
+  const last = tip === GUIDE_TIPS.length - 1;
+  return e(Card, { style: { border: "1.5px dashed " + SKY, background: "white" } }, [
+    e(Eyebrow, { key: 1, right: (tip + 1) + "/" + GUIDE_TIPS.length }, "New here? Quick tour"),
+    e("div", { key: 2, className: "row", style: { gap: 12 } }, [
+      e("div", { key: 1, className: "pop", style: { width: 44, height: 44, borderRadius: 12, background: t.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, e(Icon, { name: t.icon, size: 20, color: t.color })),
+      e("div", { key: 2, className: "grow" }, [
+        e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, t.title),
+        e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: "3px 0 0", lineHeight: 1.45 } }, t.sub),
+      ]),
+    ]),
+    e("div", { key: 3, className: "row between", style: { marginTop: 12 } }, [
+      e("div", { key: 1, className: "row", style: { gap: 5 } },
+        GUIDE_TIPS.map((_, i) => e("div", { key: i, style: { width: i === tip ? 14 : 5, height: 5, borderRadius: 999, background: i === tip ? SKY : LINE, transition: "all .2s" } }))
+      ),
+      e("button", { key: 2, onClick: () => last ? onDismiss() : setTip(tip + 1), style: { borderRadius: 999, padding: "8px 16px", fontSize: 12.5, fontWeight: 700, background: last ? MINT : INK, color: "white" } }, last ? "Got it \u2713" : "Next tip"),
+    ]),
+  ]);
+}
+
+/* ================= HOME (three flavors) ================= */
+function HomeScreen({ session, go, onSetCity, name = "Lena" }) {
+  const h = new Date().getHours();
+  const greet = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const { mode, cityKey, matches } = session;
+  const meta = CITY_META[cityKey];
+  const [guideVisible, setGuideVisible] = useState(true);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const header = (sub, place) =>
+    e("div", { className: "row between", style: { padding: "20px 20px 14px" } }, [
+      e("div", { key: 1 }, [
+        e("p", { key: 1, className: "mono", style: { color: SUB, fontSize: 10, fontWeight: 700, letterSpacing: 1.6, margin: 0, textTransform: "uppercase" } }, greet + " \u00B7 " + place),
+        e("h1", { key: 2, style: { color: TXT, fontSize: 23, fontWeight: 800, margin: "4px 0 2px", letterSpacing: -0.5 } }, "Hi " + name),
+        e("p", { key: 3, style: { color: SUB, fontSize: 12, margin: 0 } }, sub),
+      ]),
+      e("button", { key: 2, onClick: () => go("profile"), style: { borderRadius: "50%", border: "2px solid " + LINE, lineHeight: 0 } }, e(PersonAvatar, { size: 44, top: INK })),
+    ]);
+
+  const section = (key, label, child, right) =>
+    e("div", { key, style: { padding: "20px 20px 0" } }, [e(Eyebrow, { key: 1, right }, label), child]);
+
+  /* ----- COMPARE mode: finding a city ----- */
+  if (mode === "compare") {
+    const results = matches || scoreCities({ budget: 1, vibe: "cozy", night: 1 });
+    return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+      e("div", { key: "h" }, header("Let's find your Erasmus city", "City search \uD83E\uDDED")),
+      section("matches", "Your top matches", e("div", { className: "col", style: { gap: 8 } },
+        results.map((m, i) => {
+          const cm = CITY_META[m.key];
+          return e(Card, { key: m.key, onClick: () => go("cityDetail:" + m.key), className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+            e("span", { key: 1, className: "mono", style: { width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, background: i === 0 ? SUN_SOFT : INK_SOFT } }, cm.flag),
+            e("div", { key: 2, className: "grow" }, [
+              e("div", { key: 1, className: "row between" }, [
+                e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, cm.name),
+                e("span", { key: 2, className: "mono", style: { fontSize: 12, fontWeight: 700, color: i === 0 ? STAMP : SUB } }, m.pct + "%"),
+              ]),
+              e("div", { key: 2, style: { marginTop: 7 } }, e(Bar, { pct: m.pct, color: i === 0 ? STAMP : SUB })),
+            ]),
+            e(Icon, { key: 3, name: "chevron", size: 16, color: SUB }),
+          ]);
+        })
+      ), "quiz result"),
+      section("compare", "Dig deeper", e("div", { className: "col", style: { gap: 8 } }, [
+        e(Card, { key: 1, onClick: () => go("cities"), className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+          e("div", { key: 1, style: { width: 40, height: 40, borderRadius: 12, background: SUN_SOFT, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, e(Icon, { name: "scale", size: 18, color: GOLD })),
+          e("div", { key: 2, className: "grow" }, [
+            e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, "Compare all cities"),
+            e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: 0 } }, "Costs, nightlife, language \u2014 side by side"),
+          ]),
+          e(Icon, { key: 3, name: "chevron", size: 16, color: SUB }),
+        ]),
+        e(Card, { key: 2, onClick: () => go("chat"), className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+          e("div", { key: 1, style: { width: 40, height: 40, borderRadius: 12, background: SKY_SOFT, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, e(Icon, { name: "chat", size: 18, color: SKY })),
+          e("div", { key: 2, className: "grow" }, [
+            e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, "Ask students anything"),
+            e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: 0 } }, "Real answers from people who've been there"),
+          ]),
+          e(Icon, { key: 3, name: "chevron", size: 16, color: SUB }),
+        ]),
+      ])),
+      e("div", { key: "decide", style: { padding: "20px 20px 0" } },
+        e("div", { style: { borderRadius: 20, background: INK, padding: 16 } }, [
+          e("p", { key: 1, style: { color: "white", fontWeight: 800, fontSize: 15, margin: 0 } }, "Made your choice?"),
+          e("p", { key: 2, style: { color: "rgba(255,255,255,0.7)", fontSize: 12, margin: "4px 0 12px", lineHeight: 1.5 } }, "Set your home base to unlock your city's events, chats and spots."),
+          pickerOpen
+            ? e("div", { key: 3, className: "row", style: { gap: 8 } },
+                Object.keys(CITY_META).map((key) =>
+                  e("button", { key, onClick: () => onSetCity(key), style: { flex: 1, borderRadius: 12, padding: "10px 0", fontSize: 12.5, fontWeight: 700, background: "rgba(255,255,255,0.12)", color: "white", border: "1px solid rgba(255,255,255,0.25)" } }, CITY_META[key].flag + " " + CITY_META[key].name)
+                )
+              )
+            : e("button", { key: 3, onClick: () => setPickerOpen(true), style: { borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 700, background: SUN, color: INK } }, "Set my city"),
+        ])
+      ),
+    ]);
+  }
+
+  /* ----- PREP mode: city chosen, not there yet ----- */
+  if (mode === "prep") {
+    const stamps = [
+      { label: "PASSPORT", state: "done" },
+      { label: "CITY SET", state: "done" },
+      { label: "ARRIVAL", state: "next", sub: "34d" },
+      { label: "FIRST EVENT", state: "locked" },
+      { label: "BUDDY MET", state: "locked" },
+      { label: "5 SPOTS", state: "locked" },
+      { label: "FIRST TRIP", state: "locked" },
+      { label: "20 WEEKS", state: "locked" },
+    ];
+    return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+      e("div", { key: "h" }, header("T\u221234 days until " + meta.name + " " + meta.flag, meta.name)),
+      guideVisible && e("div", { key: "guide", style: { padding: "0 20px" } }, e(GuideCard, { onDismiss: () => setGuideVisible(false) })),
+      section("discover", "Get to know " + meta.name, e(Card, { onClick: () => go("discover"), style: { padding: 0, overflow: "hidden" } }, [
+        e("img", { key: 1, src: CITY_DATA[cityKey].img, alt: meta.name, style: { width: "100%", height: 110, objectFit: "cover" } }),
+        e("div", { key: 2, className: "row between", style: { padding: 12 } }, [
+          e("div", { key: 1 }, [
+            e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, "Explore " + meta.name + " before you land"),
+            e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: "2px 0 0" } }, "Places, vibes and first tips from students"),
+          ]),
+          e(Icon, { key: 2, name: "chevron", size: 16, color: SUB }),
+        ]),
+      ])),
+      section("getset", "Get set before you fly", e(Card, { onClick: () => go("docs") }, [
+        e("div", { key: 1, className: "row between" }, [
+          e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, "Your Erasmus checklist"),
+          e("span", { key: 2, className: "mono", style: { fontSize: 11, fontWeight: 700, color: TXT } }, "5/8"),
+        ]),
+        e("div", { key: 2, style: { margin: "10px 0 8px" } }, e(Bar, { pct: 62 })),
+        e("p", { key: 3, style: { fontSize: 12, color: SUB, margin: 0 } }, "Almost there \u2014 3 things left before departure."),
+      ])),
+      section("hero", "Already buzzing in " + meta.name, e(TicketHero, { uniShort: meta.uni })),
+      section("stamps", "", e(StampsCard, { stamps, hint: "Your ARRIVAL stamp unlocks the day you land in " + meta.name + "." })),
+      section("go", "Go straight to", e(ShortcutsGrid, { go })),
+      section("buddy", "Your buddy in " + meta.name, e(BuddyCard, { go })),
+      e("div", { key: "cmp", style: { padding: "20px 20px 0" } },
+        e("button", { onClick: () => go("cities"), className: "row", style: { width: "100%", justifyContent: "center", gap: 6, padding: "10px 0", fontSize: 12.5, fontWeight: 600, color: SUB } }, ["Still comparing cities?", e(Icon, { key: "i", name: "chevron", size: 14, color: SUB })])
+      ),
+    ]);
+  }
+
+  /* ----- ARRIVED mode: living the semester ----- */
+  const stamps = [
+    { label: "ARRIVAL", state: "done" },
+    { label: "FIRST EVENT", state: "done" },
+    { label: "BUDDY MET", state: "done" },
+    { label: "5 SPOTS", state: "next", sub: "3/5" },
+    { label: "FIRST TRIP", state: "locked" },
+    { label: "LANGUAGE CAF\u00C9", state: "locked" },
+    { label: "NEW CITY", state: "locked" },
+    { label: "20 WEEKS", state: "locked" },
+  ];
+  const events = [
+    { name: "Sunrise City Run", info: "Sat 22 Jun \u00B7 Citadelpark \u00B7 12 going", price: "\u20AC3", free: false },
+    { name: "Language Caf\u00E9 Volta", info: "Sun 23 Jun \u00B7 7 PM \u00B7 25 going", price: "Free", free: true },
+    { name: "ESN Boat Party", info: "Fri 27 Jun \u00B7 canal cruise \u00B7 58 going", price: "\u20AC12", free: false, scarce: "4 spots left" },
+  ];
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e("div", { key: "h" }, header("Week 3 of 20 \u00B7 119 days of adventure left", meta.name + " " + meta.flag)),
+    e("div", { key: "hero", style: { padding: "0 20px" } }, e(TicketHero, { uniShort: meta.uni })),
+    section("events", "This week in " + meta.name, e(EventsList, { events }), "3 events"),
+    section("stamps", "", e(StampsCard, { stamps, hint: "Discover 2 more spots to earn your next stamp." })),
+    section("go", "Go straight to", e(ShortcutsGrid, { go })),
+    section("buddy", "Your buddy", e(BuddyCard, { go })),
+    section("trip", "Next adventure", e(Card, { onClick: () => go("travel"), className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+      e("div", { key: 1, style: { width: 40, height: 40, borderRadius: 12, background: MINT_SOFT, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, e(Icon, { name: "calendar", size: 18, color: MINT })),
+      e("div", { key: 2, className: "grow" }, [
+        e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, "Prague Weekend"),
+        e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: 0 } }, "In 14 days \u00B7 6 travelers \u00B7 budget split active"),
+      ]),
+      e(Icon, { key: 3, name: "chevron", size: 16, color: SUB }),
+    ])),
+  ]);
+}
+
+/* ================= CHAT ================= */
+function ChatScreen({ cityName }) {
+  const groups = [
+    { name: "Erasmus " + cityName, last: "Who's coming to the pub quiz?", unread: 4, top: INK, type: "City" },
+    { name: "Buddy \u00B7 Matteo", last: "Great, see you there!", unread: 0, top: MINT, type: "Buddy", online: true },
+    { name: "Prague Weekend", last: "Budget split is ready", unread: 2, top: STAMP, type: "Trip" },
+    { name: cityName + " Housing", last: "Room free from July", unread: 0, top: GOLD, type: "Housing" },
+  ];
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Chats" }),
+    e("div", { key: "body", style: { padding: "4px 20px 0" } }, [
+      e("div", { key: 1, className: "row", style: { gap: 8, borderRadius: 12, padding: "10px 12px", marginBottom: 16, background: "white", border: "1px solid " + LINE } }, [
+        e(Icon, { key: 1, name: "search", size: 16, color: SUB }),
+        e("span", { key: 2, style: { fontSize: 13, color: SUB } }, "Search a chat or city\u2026"),
+      ]),
+      e(Eyebrow, { key: 2 }, "Your groups"),
+      e("div", { key: 3, className: "col", style: { gap: 8 } },
+        groups.map((g, i) =>
+          e(Card, { key: i, className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+            e("div", { key: 1, style: { position: "relative", lineHeight: 0 } }, [
+              e(PersonAvatar, { key: 1, size: 42, top: g.top }),
+              g.online && e("div", { key: 2, style: { position: "absolute", right: 0, bottom: 0, width: 11, height: 11, borderRadius: "50%", background: MINT, border: "2px solid white" } }),
+            ]),
+            e("div", { key: 2, className: "grow" }, [
+              e("div", { key: 1, className: "row", style: { gap: 8 } }, [
+                e("p", { key: 1, className: "truncate", style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, g.name),
+                e("span", { key: 2, className: "mono", style: { fontSize: 9, fontWeight: 700, letterSpacing: 0.8, color: SUB, textTransform: "uppercase" } }, g.type),
+              ]),
+              e("p", { key: 2, className: "truncate", style: { fontSize: 12, color: g.unread ? TXT : SUB, fontWeight: g.unread ? 600 : 400, margin: "2px 0 0" } }, g.last),
+            ]),
+            g.unread > 0 && e("span", { key: 3, style: { fontSize: 11, fontWeight: 700, color: "white", borderRadius: 999, minWidth: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: STAMP, padding: "0 5px" } }, g.unread),
+          ])
+        )
+      ),
+      e(Card, { key: 4, style: { marginTop: 16, background: MINT_SOFT, border: "none" } }, [
+        e("p", { key: 1, style: { fontSize: 13, fontWeight: 700, color: MINT, margin: 0 } }, "Traveling?"),
+        e("p", { key: 2, style: { fontSize: 12, color: MINT, margin: "4px 0 0", lineHeight: 1.5 } }, "Turn on travel mode and you'll automatically join the Erasmus chat of your new city."),
+      ]),
+    ]),
+  ]);
+}
+
+/* ================= SPOTS ================= */
+function SpotsScreen({ cityName }) {
+  const categories = [
+    { label: "All", icon: "compass" }, { label: "Food", icon: "food" }, { label: "Bars", icon: "coffee" },
+    { label: "Study", icon: "book" }, { label: "Nightlife", icon: "party" },
+  ];
+  const allSpots = [
+    { name: "Caf\u00E9 Labath", tag: "Affordable \u00B7 Bar", cat: "Bars", rating: "4.6", by: "112 tips", icon: "coffee", price: "\u20AC\u20AC" },
+    { name: "Pizza Forno", tag: "Affordable \u00B7 Food", cat: "Food", rating: "4.4", by: "87 tips", icon: "food", price: "\u20AC" },
+    { name: "Het Pand Hostel Bar", tag: "Student-friendly", cat: "Bars", rating: "4.7", by: "64 tips", icon: "party", price: "\u20AC\u20AC" },
+    { name: "Overpoort street", tag: "Student nightlife strip", cat: "Nightlife", rating: "4.5", by: "150 tips", icon: "party", price: "\u20AC" },
+    { name: "Friday Market terraces", tag: "Cozy, always busy", cat: "Food", rating: "4.3", by: "98 tips", icon: "food", price: "\u20AC\u20AC" },
+  ];
+  const [active, setActive] = useState(0);
+  const [saved, setSaved] = useState({});
+  const filtered = active === 0 ? allSpots : allSpots.filter((s) => s.cat === categories[active].label);
+  const toggleSave = (name) => setSaved({ ...saved, [name]: !saved[name] });
+
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Spots in " + cityName }),
+    e("div", { key: "body", style: { padding: "4px 20px 0" } }, [
+      e(Card, { key: "tip", style: { background: SUN_SOFT, border: "1.5px dashed " + SUN, marginBottom: 12 } }, [
+        e(Eyebrow, { key: 1 }, "Tip of the week"),
+        e("div", { key: 2, className: "row", style: { gap: 12 } }, [
+          e("div", { key: 1, style: { width: 44, height: 44, borderRadius: 12, background: "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, e(Icon, { name: "book", size: 20, color: GOLD })),
+          e("div", { key: 2, className: "grow" }, [
+            e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, "De Krook library"),
+            e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: "2px 0 0" } }, "Quiet study spot, free wifi \u00B7 recommended by 203 students"),
+          ]),
+        ]),
+      ]),
+      e("div", { key: "map", style: { height: 120, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: SKY_SOFT, border: "1px solid " + LINE } }, [
+        e(Icon, { key: 1, name: "pin", size: 22, color: SKY }),
+        e("span", { key: 2, style: { marginLeft: 8, fontSize: 13, fontWeight: 600, color: SKY } }, "Map of " + cityName),
+      ]),
+      e("div", { key: "cats", className: "row", style: { gap: 8, marginTop: 14, overflowX: "auto", paddingBottom: 4 } },
+        categories.map((c, i) =>
+          e("button", { key: c.label, onClick: () => setActive(i), className: "row", style: { gap: 5, flexShrink: 0, padding: "7px 13px", borderRadius: 999, background: active === i ? INK : "white", border: "1px solid " + (active === i ? INK : LINE) } }, [
+            e(Icon, { key: 1, name: c.icon, size: 14, color: active === i ? "white" : SUB }),
+            e("span", { key: 2, style: { fontSize: 12, fontWeight: 600, color: active === i ? "white" : TXT } }, c.label),
+          ])
+        )
+      ),
+      e("div", { key: "eyebrow", style: { margin: "16px 0 0" } }, e(Eyebrow, null, filtered.length + " places \u00B7 rated by students")),
+      e("div", { key: "list", className: "col", style: { gap: 8 } },
+        filtered.map((s, i) =>
+          e(Card, { key: s.name, className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+            e("div", { key: 1, style: { width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: STAMP_SOFT } }, e(Icon, { name: s.icon, size: 20, color: STAMP })),
+            e("div", { key: 2, className: "grow" }, [
+              e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, s.name),
+              e("div", { key: 2, className: "row", style: { gap: 6 } }, [
+                e("span", { key: 1, className: "row", style: { gap: 3, fontSize: 12, fontWeight: 700, color: TXT } }, [e(Icon, { key: "i", name: "star", size: 11, color: SUN }), s.rating]),
+                e("span", { key: 2, style: { fontSize: 12, color: SUB } }, "\u00B7 " + s.tag),
+              ]),
+              e("p", { key: 3, className: "mono", style: { fontSize: 9, color: SUB, margin: "3px 0 0" } }, s.price + " \u00B7 " + s.by),
+            ]),
+            e("button", { key: 3, onClick: () => toggleSave(s.name), className: saved[s.name] ? "pop" : "", style: { width: 36, height: 36, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: saved[s.name] ? STAMP_SOFT : "white", border: "1px solid " + (saved[s.name] ? STAMP : LINE) } },
+              e("svg", { width: 16, height: 16, viewBox: "0 0 24 24", fill: saved[s.name] ? STAMP : "none", stroke: saved[s.name] ? STAMP : SUB, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" },
+                e("path", { d: "M12 20s-7-4.4-9.3-8.8C1.4 8 3 5 6.2 5 8.4 5 10 6.3 12 8.5 14 6.3 15.6 5 17.8 5 21 5 22.6 8 21.3 11.2 19 15.6 12 20 12 20Z" }))),
+          ])
+        )
+      ),
+    ]),
+  ]);
+}
+
+/* ================= TRIPS ================= */
+function TravelScreen() {
+  const trips = [
+    { name: "Prague Weekend", date: "27\u201329 Jun", people: [STAMP, MINT, SKY, SUN], status: "Budget split active", countdown: "in 14 days" },
+    { name: "Bruges day trip", date: "5 Jul", people: [SKY, INK], status: "Spots still open", countdown: "in 22 days" },
+  ];
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Trips" }),
+    e("div", { key: "body", style: { padding: "4px 20px 0" } }, [
+      e("button", { key: "cta", className: "row", style: { justifyContent: "center", gap: 8, width: "100%", borderRadius: 14, padding: "13px 0", color: "white", fontWeight: 700, fontSize: 14, background: INK } }, [e(Icon, { key: "i", name: "plus", size: 16, color: "white" }), "Propose a new trip"]),
+      e("div", { key: "eb", style: { margin: "18px 0 0" } }, e(Eyebrow, null, "Your trips")),
+      e("div", { key: "list", className: "col", style: { gap: 10 } },
+        trips.map((t, i) =>
+          e(Card, { key: i, style: { padding: 14 } }, [
+            e("div", { key: 1, className: "row between" }, [
+              e("p", { key: 1, style: { fontSize: 15, fontWeight: 700, color: TXT, margin: 0 } }, t.name),
+              e("span", { key: 2, className: "mono", style: { fontSize: 10, fontWeight: 700, color: SUB, letterSpacing: 0.5 } }, t.date),
+            ]),
+            e("div", { key: 2, className: "row between", style: { marginTop: 12 } }, [
+              e("div", { key: 1, className: "row", style: { gap: 8 } }, [
+                e(AvatarStack, { key: 1, tones: t.people, size: 24, ring: "white" }),
+                e("span", { key: 2, style: { fontSize: 12, color: SUB } }, t.people.length + " travelers"),
+              ]),
+              e(Pill, { key: 2, color: GOLD, soft: SUN_SOFT }, t.countdown),
+            ]),
+            e("div", { key: 3, style: { marginTop: 10 } }, e(Pill, { color: MINT, soft: MINT_SOFT }, t.status)),
+          ])
+        )
+      ),
+      e(Card, { key: "tip", style: { marginTop: 16, background: MINT_SOFT, border: "none" } },
+        e("p", { style: { fontSize: 12.5, fontWeight: 500, color: MINT, margin: 0, lineHeight: 1.55 } }, "Turn on \u201Ctravel mode\u201D when you arrive in a new city \u2014 you'll automatically see the local Erasmus chat and events. And yes, that earns you a stamp. \u2708\uFE0E")
+      ),
+    ]),
+  ]);
+}
+
+/* ================= HOUSING ================= */
+function HousingScreen({ cityName }) {
+  const rooms = [
+    { title: "Room in a student house", area: "Sint-Pietersnieuwstraat", price: "\u20AC420/mo", from: "from 1 Jul", isNew: true },
+    { title: "Studio near campus", area: "Overpoort street", price: "\u20AC560/mo", from: "from 15 Jul", isNew: false },
+  ];
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Housing in " + cityName }),
+    e("div", { key: "body", style: { padding: "4px 20px 0" } }, [
+      e("div", { key: "hero", style: { borderRadius: 16, padding: 16, background: INK } }, [
+        e("p", { key: 1, style: { color: "white", fontWeight: 800, fontSize: 15, margin: 0 } }, "Still looking for a place?"),
+        e("p", { key: 2, style: { color: "rgba(255,255,255,0.7)", fontSize: 12, margin: "4px 0 0", lineHeight: 1.5 } }, "Browse rooms, get contracts checked and read tips from students who already found their spot."),
+      ]),
+      e("div", { key: "eb", style: { margin: "18px 0 0" } }, e(Eyebrow, null, "Available rooms")),
+      e("div", { key: "rooms", className: "col", style: { gap: 8 } },
+        rooms.map((r, i) =>
+          e(Card, { key: i, className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+            e("div", { key: 1, style: { width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: SUN_SOFT } }, e(Icon, { name: "building", size: 20, color: GOLD })),
+            e("div", { key: 2, className: "grow" }, [
+              e("div", { key: 1, className: "row", style: { gap: 6 } }, [
+                e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, r.title),
+                r.isNew && e("span", { key: 2, className: "mono", style: { fontSize: 8.5, fontWeight: 700, letterSpacing: 0.6, color: STAMP, background: STAMP_SOFT, borderRadius: 999, padding: "2px 7px" } }, "NEW"),
+              ]),
+              e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: 0 } }, r.area + " \u00B7 " + r.from),
+            ]),
+            e(Pill, { key: 3, color: TXT, soft: INK_SOFT }, r.price),
+          ])
+        )
+      ),
+      e("div", { key: "eb2", style: { margin: "18px 0 0" } }, e(Eyebrow, null, "Need help")),
+      e("div", { key: "help", className: "col", style: { gap: 8 } }, [
+        e(Card, { key: 1, className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [e(Icon, { key: 1, name: "filecheck", size: 18, color: GOLD }), e("p", { key: 2, className: "grow", style: { fontSize: 13, fontWeight: 600, color: TXT, margin: 0 } }, "Get your rental contract checked"), e(Icon, { key: 3, name: "chevron", size: 16, color: SUB })]),
+        e(Card, { key: 2, className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [e(Icon, { key: 1, name: "chat", size: 18, color: GOLD }), e("p", { key: 2, className: "grow", style: { fontSize: 13, fontWeight: 600, color: TXT, margin: 0 } }, "Ask in the Housing chat"), e(Icon, { key: 3, name: "chevron", size: 16, color: SUB })]),
+      ]),
+    ]),
+  ]);
+}
+
+/* ================= DISCOVER ================= */
+function DiscoverScreen({ go, cityName }) {
+  const sights = [
+    { name: "Graslei & Korenlei", desc: "The famous quays with guild houses along the river Leie. Perfect for an evening walk or a drink on the steps.", img: IMG.graslei },
+    { name: "Gravensteen castle", desc: "A medieval castle in the middle of the city. Climb to the top for a view over the rooftops.", img: IMG.gravensteen },
+    { name: "The Belfry", desc: "The bell tower with the golden dragon, overlooking the city's three towers.", img: IMG.belfort },
+  ];
+  const todo = [
+    { label: "Student nightlife in Overpoort", icon: "party", color: STAMP, soft: STAMP_SOFT, desc: "THE going-out street, alive every night of the week." },
+    { label: "Friday Market & terraces", icon: "coffee", color: SKY, soft: SKY_SOFT, desc: "A cozy square full of caf\u00E9s \u2014 perfect for meeting people." },
+    { label: "Request your Erasmus buddy", icon: "heart", color: MINT, soft: MINT_SOFT, desc: "Get matched with a buddy before you even leave." },
+  ];
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Discover " + cityName, onBack: () => go("home") }),
+    e("div", { key: "body", style: { padding: "4px 20px 0" } }, [
+      e("div", { key: 1, style: { borderRadius: 16, padding: 16, background: INK } }, [
+        e("p", { key: 1, style: { color: "white", fontWeight: 800, fontSize: 15, margin: 0 } }, "Not there yet?"),
+        e("p", { key: 2, style: { color: "rgba(255,255,255,0.7)", fontSize: 12, margin: "4px 0 0", lineHeight: 1.5 } }, "A taste of " + cityName + " \u2014 places, vibes and first tips, before you even arrive."),
+      ]),
+      e("div", { key: 2, style: { margin: "18px 0 0" } }, e(Eyebrow, null, "Beautiful places")),
+      e("div", { key: 3, className: "col", style: { gap: 12 } },
+        sights.map((s, i) =>
+          e("div", { key: i, style: { borderRadius: 16, border: "1px solid " + LINE, overflow: "hidden", background: "white" } }, [
+            e("img", { key: 1, src: s.img, alt: s.name, style: { width: "100%", height: 144, objectFit: "cover" } }),
+            e("div", { key: 2, style: { padding: 12 } }, [
+              e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, s.name),
+              e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: "4px 0 0", lineHeight: 1.5 } }, s.desc),
+            ]),
+          ])
+        )
+      ),
+      e("div", { key: 4, style: { margin: "18px 0 0" } }, e(Eyebrow, null, "What to do as a student")),
+      e("div", { key: 5, className: "col", style: { gap: 8 } },
+        todo.map((t, i) =>
+          e(Card, { key: i, className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12 } }, [
+            e("div", { key: 1, style: { width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: t.soft } }, e(Icon, { name: t.icon, size: 20, color: t.color })),
+            e("div", { key: 2, className: "grow" }, [
+              e("p", { key: 1, style: { fontSize: 13, fontWeight: 700, color: TXT, margin: 0 } }, t.label),
+              e("p", { key: 2, style: { fontSize: 11, color: SUB, margin: "2px 0 0" } }, t.desc),
+            ]),
+          ])
+        )
+      ),
+      e("button", { key: 6, onClick: () => go("home"), style: { width: "100%", marginTop: 18, borderRadius: 14, padding: "13px 0", color: "white", fontWeight: 700, fontSize: 14, background: MINT } }, "I'm arriving soon \u2192"),
+    ]),
+  ]);
+}
+
+/* ================= CITIES ================= */
+function CitiesScreen({ go, openCity }) {
+  const cities = Object.entries(CITY_DATA);
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Compare cities", onBack: () => go("home") }),
+    e("div", { key: "body", style: { padding: "4px 20px 0" } }, [
+      e("div", { key: 1, style: { borderRadius: 16, padding: 16, background: INK } }, [
+        e("p", { key: 1, style: { color: "white", fontWeight: 800, fontSize: 15, margin: 0 } }, "Haven't picked a city yet?"),
+        e("p", { key: 2, style: { color: "rgba(255,255,255,0.7)", fontSize: 12, margin: "4px 0 0", lineHeight: 1.5 } }, "Read real experiences from past Erasmus students and compare cities before you choose."),
+      ]),
+      e("div", { key: 2, style: { margin: "18px 0 0" } }, e(Eyebrow, null, "Popular destinations")),
+      e("div", { key: 3, className: "col", style: { gap: 12 } },
+        cities.map(([key, c]) =>
+          e("button", { key, onClick: () => openCity(key), style: { width: "100%", textAlign: "left", borderRadius: 16, border: "1px solid " + LINE, overflow: "hidden", background: "white" } }, [
+            e("img", { key: 1, src: c.img, alt: c.name, style: { width: "100%", height: 128, objectFit: "cover" } }),
+            e("div", { key: 2, style: { padding: 12 } }, [
+              e("div", { key: 1, className: "row between" }, [
+                e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, c.name),
+                e(Icon, { key: 2, name: "chevron", size: 16, color: SUB }),
+              ]),
+              e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: "2px 0 0" } }, c.vibe),
+              e("div", { key: 3, className: "row", style: { gap: 6, marginTop: 8 } }, [
+                e(Pill, { key: 1, color: TXT, soft: INK_SOFT }, c.stats.cost),
+                e(Pill, { key: 2, color: TXT, soft: INK_SOFT }, c.stats.nightlife),
+                e(Pill, { key: 3, color: TXT, soft: INK_SOFT }, c.stats.lang),
+              ]),
+            ]),
+          ])
+        )
+      ),
+    ]),
+  ]);
+}
+
+function CityDetailScreen({ cityKey, go }) {
+  const c = CITY_DATA[cityKey];
+  if (!c) return null;
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: c.name, onBack: () => go("cities") }),
+    e("img", { key: "img", src: c.img, alt: c.name, style: { width: "calc(100% - 40px)", height: 176, objectFit: "cover", borderRadius: 16, margin: "4px auto 0" } }),
+    e("div", { key: "body", style: { padding: "14px 20px 0" } }, [
+      e("p", { key: 1, style: { fontSize: 13, color: TXT, fontWeight: 500, margin: 0 } }, c.vibe),
+      e("div", { key: 2, className: "row", style: { gap: 6, marginTop: 8 } }, [
+        e(Pill, { key: 1, color: TXT, soft: INK_SOFT }, "Cost: " + c.stats.cost),
+        e(Pill, { key: 2, color: TXT, soft: INK_SOFT }, "Nightlife: " + c.stats.nightlife),
+        e(Pill, { key: 3, color: TXT, soft: INK_SOFT }, "Language: " + c.stats.lang),
+      ]),
+      e("div", { key: 3, style: { margin: "20px 0 0" } }, e(Eyebrow, null, "What past students say")),
+      e("div", { key: 4, className: "col", style: { gap: 8 } },
+        c.reviews.map((r, i) =>
+          e(Card, { key: i, style: { padding: 12 } }, [
+            e("div", { key: 1, className: "row", style: { gap: 12 } }, [
+              e(PersonAvatar, { key: 1, size: 36, top: r.top }),
+              e("div", { key: 2, className: "grow" }, [
+                e("p", { key: 1, style: { fontSize: 13, fontWeight: 700, color: TXT, margin: 0 } }, r.name),
+                e("div", { key: 2, className: "row", style: { gap: 2, marginTop: 2 } }, Array.from({ length: 5 }).map((_, j) => e(Icon, { key: j, name: "star", size: 12, color: j < r.rating ? SUN : LINE }))),
+              ]),
+            ]),
+            e("p", { key: 2, style: { fontSize: 12, color: TXT, margin: "8px 0 0", lineHeight: 1.55 } }, r.text),
+          ])
+        )
+      ),
+      e("button", { key: 5, onClick: () => go("cities"), style: { width: "100%", marginTop: 18, borderRadius: 14, padding: "13px 0", fontWeight: 700, fontSize: 14, background: "white", border: "1px solid " + LINE, color: TXT } }, "See other cities"),
+    ]),
+  ]);
+}
+
+/* ================= GET SET (checklist) ================= */
+function ChecklistScreen() {
+  const [items, setItems] = useState([
+    { t: "Learning agreement signed", done: true },
+    { t: "EHIC health insurance card", done: true },
+    { t: "Registered with the city", done: true },
+    { t: "Local SIM or EU data plan", done: true },
+    { t: "Bank account opened", done: true },
+    { t: "Rental contract checked", done: false },
+    { t: "Student card picked up", done: false },
+    { t: "Grant documents uploaded", done: false },
+  ]);
+  const doneCount = items.filter(i => i.done).length;
+  const allDone = doneCount === items.length;
+  const toggle = (idx) => setItems(items.map((it, i) => i === idx ? { ...it, done: !it.done } : it));
+  const sorted = items.map((it, idx) => ({ ...it, idx })).sort((a, b) => Number(a.done) - Number(b.done));
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Get set" }),
+    e("div", { key: "body", style: { padding: "4px 20px 0" } }, [
+      e(Card, { key: "progress" }, [
+        e(Eyebrow, { key: 1, right: doneCount + "/" + items.length }, "Your Erasmus checklist"),
+        e(Bar, { key: 2, pct: (doneCount / items.length) * 100, color: allDone ? MINT : STAMP }),
+        e("p", { key: 3, style: { fontSize: 12, color: SUB, margin: "8px 0 0" } },
+          allDone ? "All set. Time to live it up! \uD83C\uDF89" : "Great pace \u2014 " + (items.length - doneCount) + " left and you're fully set."),
+      ]),
+      e(Card, { key: "assist", className: "row", style: { display: "flex", alignItems: "center", gap: 12, padding: 12, marginTop: 10 } }, [
+        e("div", { key: 1, style: { width: 40, height: 40, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", background: INK_SOFT, flexShrink: 0 } }, e(Icon, { name: "sparkles", size: 18, color: INK })),
+        e("div", { key: 2, className: "grow" }, [
+          e("p", { key: 1, style: { fontSize: 14, fontWeight: 700, color: TXT, margin: 0 } }, "Ask the assistant"),
+          e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: 0 } }, "Visa, health insurance, bank account\u2026"),
+        ]),
+        e(Icon, { key: 3, name: "chevron", size: 16, color: SUB }),
+      ]),
+      e("div", { key: "eb", style: { margin: "18px 0 0" } }, e(Eyebrow, null, "Still to do")),
+      e("div", { key: "list", className: "col", style: { gap: 8 } },
+        sorted.map((it) =>
+          e("button", { key: it.t, onClick: () => toggle(it.idx), className: "row", style: { width: "100%", gap: 12, textAlign: "left", borderRadius: 14, padding: 13, background: "white", border: "1px solid " + LINE, opacity: it.done ? 0.65 : 1 } }, [
+            e("div", { key: 1, className: it.done ? "pop" : "", style: { width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: it.done ? MINT : "white", border: it.done ? "none" : "2px dashed " + SUB } },
+              it.done ? e(Icon, { name: "check", size: 14, color: "white" }) : null),
+            e("span", { key: 2, className: "grow", style: { fontSize: 13.5, fontWeight: 600, color: TXT } }, it.t),
+          ])
+        )
+      ),
+    ]),
+  ]);
+}
+
+/* ================= PROFILE ================= */
+function ProfileScreen({ session, onRestart }) {
+  const meta = CITY_META[session.cityKey];
+  const modeLabel = session.mode === "compare" ? "Exploring destinations" : session.mode === "prep" ? "Departing soon \u00B7 " + meta.name : "On Erasmus \u00B7 " + meta.name + " \u00B7 week 3 of 20";
+  const stats = [
+    { n: session.mode === "arrived" ? "3" : session.mode === "prep" ? "2" : "1", label: "STAMPS" },
+    { n: session.mode === "arrived" ? "12" : "0", label: "SPOTS" },
+    { n: session.mode === "arrived" ? "2" : "0", label: "TRIPS" },
+  ];
+  const items = ["My university & courses", "Buddy settings", "Travel mode", "Language & notifications", "Privacy & data"];
+  return e("div", { style: { paddingBottom: 100, background: PAPER, minHeight: "100%" } }, [
+    e(TopBar, { key: "top", title: "Profile" }),
+    e("div", { key: "head", className: "row", style: { gap: 12, padding: "8px 20px 0" } }, [
+      e(PersonAvatar, { key: 1, size: 56, top: INK }),
+      e("div", { key: 2 }, [
+        e("p", { key: 1, style: { fontSize: 17, fontWeight: 800, color: TXT, margin: 0 } }, "Lena S."),
+        e("p", { key: 2, style: { fontSize: 12, color: SUB, margin: "2px 0 0" } }, modeLabel),
+      ]),
+    ]),
+    e("div", { key: "stats", style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, padding: "16px 20px 0" } },
+      stats.map((s) =>
+        e(Card, { key: s.label, className: "col", style: { display: "flex", alignItems: "center", padding: "12px 0", gap: 2 } }, [
+          e("span", { key: 1, style: { fontSize: 20, fontWeight: 800, color: TXT } }, s.n),
+          e("span", { key: 2, className: "mono", style: { fontSize: 8.5, fontWeight: 700, letterSpacing: 1, color: SUB } }, s.label),
+        ])
+      )
+    ),
+    e("div", { key: "list", className: "col", style: { padding: "16px 20px 0", gap: 8 } },
+      items.map((s) =>
+        e(Card, { key: s, className: "row", style: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: 14 } }, [
+          e("span", { key: 1, style: { fontSize: 13, fontWeight: 600, color: TXT } }, s),
+          e(Icon, { key: 2, name: "chevron", size: 16, color: SUB }),
+        ])
+      )
+    ),
+    e("div", { key: "reset", style: { padding: "16px 20px 0" } },
+      e("button", { onClick: onRestart, style: { width: "100%", borderRadius: 14, padding: "12px 0", fontSize: 12.5, fontWeight: 700, color: SUB, border: "1.5px dashed " + LINE, background: "transparent" } }, "\u21BA Restart demo onboarding")
+    ),
+  ]);
+}
+
+/* ================= APP SHELL ================= */
+function ErasmusApp() {
+  const [session, setSession] = useState(null); // { mode, cityKey, matches }
+  const [screen, setScreen] = useState("home");
+  const [cityKey, setCityKey] = useState(null); // for city detail screen
+  const tabs = [
+    { key: "home", icon: "home", label: "Home" },
+    { key: "travel", icon: "calendar", label: "Trips" },
+    { key: "chat", icon: "chat", label: "Chat" },
+    { key: "spots", icon: "pin", label: "Spots" },
+    { key: "profile", icon: "user", label: "Profile" },
+  ];
+
+  function openCity(key) { setCityKey(key); setScreen("cityDetail"); }
+  function go(target) {
+    if (target.indexOf("cityDetail:") === 0) { openCity(target.split(":")[1]); return; }
+    setScreen(target);
+  }
+  function handleSetCity(key) { setSession({ ...session, mode: "prep", cityKey: key }); setScreen("home"); }
+  function handleRestart() { setSession(null); setScreen("home"); setCityKey(null); }
+
+  const homeCity = session ? CITY_META[session.cityKey] : CITY_META.gent;
+
+  function renderScreen() {
+    switch (screen) {
+      case "chat": return e(ChatScreen, { cityName: homeCity.name });
+      case "spots": return e(SpotsScreen, { cityName: homeCity.name });
+      case "travel": return e(TravelScreen);
+      case "wonen": return e(HousingScreen, { cityName: homeCity.name });
+      case "docs": return e(ChecklistScreen);
+      case "discover": return e(DiscoverScreen, { go, cityName: homeCity.name });
+      case "cities": return e(CitiesScreen, { go, openCity });
+      case "cityDetail": return e(CityDetailScreen, { cityKey, go });
+      case "profile": return e(ProfileScreen, { session, onRestart: handleRestart });
+      default: return e(HomeScreen, { session, go, onSetCity: handleSetCity });
+    }
+  }
+
+  return e("div", { style: { width: "100%", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0", background: "#E9E5DC" } },
+    e("div", { style: { width: 380, height: 800, background: PAPER, borderRadius: 40, boxShadow: "0 24px 60px rgba(29,42,80,0.25)", border: "6px solid white", overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" } }, [
+      e("div", { key: "notch", style: { display: "flex", justifyContent: "center", paddingTop: 8, paddingBottom: 4, background: PAPER, flexShrink: 0 } }, e("div", { style: { width: 96, height: 20, background: INK, borderRadius: 999 } })),
+      e("div", { key: "content", style: { flex: 1, overflowY: "auto", background: PAPER } },
+        session ? renderScreen() : e(OnboardingFlow, { onDone: (s) => { setSession(s); setScreen("home"); } })
+      ),
+      session && e("div", { key: "nav", style: { position: "absolute", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid " + LINE, display: "flex", justifyContent: "space-between", padding: "10px 22px 14px" } },
+        tabs.map((t) => {
+          const active = screen === t.key;
+          return e("button", { key: t.key, onClick: () => setScreen(t.key), className: "col", style: { alignItems: "center", gap: 3, width: 52 } }, [
+            e(Icon, { key: 1, name: t.icon, size: 21, color: active ? INK : "#B9B4A6" }),
+            e("span", { key: 2, style: { fontSize: 9.5, fontWeight: active ? 700 : 500, color: active ? INK : "#B9B4A6" } }, t.label),
+            e("div", { key: 3, style: { width: 4, height: 4, borderRadius: 999, background: active ? SUN : "transparent" } }),
+          ]);
+        })
+      ),
+    ])
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(e(ErasmusApp));
+var __n = document.getElementById("noscript-msg");
+if (__n) __n.style.display = "none";
+</script>
+</body>
+</html>
